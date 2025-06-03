@@ -6,29 +6,33 @@ import (
 	"strings"
 )
 
-func ExtractCaptions(url string) error {
+type CaptionResult struct {
+	VideoId     string
+	CaptionPath string
+}
+
+func ExtractCaptions(url string) (*CaptionResult, error) {
 
 	// Run yt-dlp to download vtt file
-	captionsFileName, err := downloadCaptions(url)
+	videoId, err := downloadCaptions(url)
 
-	fmt.Println("Downloaded file:", captionsFileName)
+	fmt.Println("Downloaded vtt file for Id:", videoId)
 
 	if err != nil {
-		return fmt.Errorf("ExtractCaptions failed: %w", err)
+		return nil, fmt.Errorf("ExtractCaptions failed: %w", err)
 	}
 
 	// Run scripts/extract_captions to convert to a JSON format
-	cmd := exec.Command("python3", "scripts/extract_captions.py", captionsFileName)
+	cmd := exec.Command("./venv/Scripts/python", "scripts/extract_captions.py", getFileNameFromId(videoId))
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to run extract_captions.py: %w\nOutput: %s", err, cmdOutput)
-	} else {
-		fmt.Println("Python output:\n", string(cmdOutput))
+		return nil, fmt.Errorf("failed to run extract_captions.py: %w\nOutput: %s", err, cmdOutput)
 	}
 
+	captionResult := CaptionResult{VideoId: videoId, CaptionPath: "tmp/captions_parsed/" + videoId}
 	fmt.Println("Done extracting")
 
-	return nil
+	return &captionResult, nil
 }
 
 func downloadCaptions(url string) (string, error) {
@@ -38,9 +42,7 @@ func downloadCaptions(url string) (string, error) {
 		return "", err
 	}
 
-	captionsFileName := "tmp/captions/" + videoId
-
-	cmd := exec.Command("yt-dlp.exe", "--write-subs", "--write-auto-subs", "--no-warnings", "--sub-langs", "en", "--skip-download", url, "-o", captionsFileName)
+	cmd := exec.Command("yt-dlp.exe", "--write-subs", "--write-auto-subs", "--no-warnings", "--sub-langs", "en", "--skip-download", url, "-o", "tmp/captions/"+videoId)
 
 	cmdOutput, err := cmd.CombinedOutput()
 
@@ -50,7 +52,7 @@ func downloadCaptions(url string) (string, error) {
 		fmt.Println(string(cmdOutput))
 	}
 
-	return captionsFileName + ".en.vtt", nil
+	return videoId, nil
 }
 
 func getId(url string) (string, error) {
@@ -61,4 +63,8 @@ func getId(url string) (string, error) {
 	}
 
 	return strings.TrimSpace(string(idBytes)), nil
+}
+
+func getFileNameFromId(id string) string {
+	return "tmp/captions/" + id + ".en.vtt"
 }
