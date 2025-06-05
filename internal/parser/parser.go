@@ -4,8 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 )
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil || !os.IsNotExist(err)
+}
 
 func ExtractCaptions(url string, outputDir string) (*CaptionMetadata, error) {
 
@@ -15,16 +21,23 @@ func ExtractCaptions(url string, outputDir string) (*CaptionMetadata, error) {
 		return nil, fmt.Errorf("getMetadata failed: %w", err)
 	}
 
+	// Don't download if captions file already exists
 	vttCaptionsDir := "tmp/captions/"
-	err = getCaptions(vttCaptionsDir, captionMetadata)
-	if err != nil {
-		return nil, fmt.Errorf("getCaptions failed: %w", err)
+	vttCaptionsFile := vttCaptionsDir + captionMetadata.VideoId + ".en.vtt"
+
+	if !fileExists(vttCaptionsFile) {
+		err = getCaptions(vttCaptionsDir, captionMetadata)
+		if err != nil {
+			return nil, fmt.Errorf("getCaptions failed: %w", err)
+		}
+
+		log.Println("Downloaded vtt file for Id:", captionMetadata.VideoId)
+	} else {
+		log.Printf("Vtt file %s already exists! Skipping download\n", vttCaptionsFile)
 	}
 
-	log.Println("Downloaded vtt file for Id:", captionMetadata.VideoId)
-
 	// Run scripts/extract_captions.py to convert to a JSON format
-	cmd := exec.Command("./venv/Scripts/python", "scripts/extract_captions.py", vttCaptionsDir+captionMetadata.VideoId+".en.vtt")
+	cmd := exec.Command("./venv/Scripts/python", "scripts/extract_captions.py", vttCaptionsFile)
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to run extract_captions.py: %w\nOutput: %s", err, cmdOutput)
