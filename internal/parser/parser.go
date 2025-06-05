@@ -15,21 +15,20 @@ func ExtractCaptions(url string) (*CaptionResult, error) {
 
 	// Run yt-dlp to download vtt file
 	videoId, err := downloadCaptions(url)
-
-	fmt.Println("Downloaded vtt file for Id:", videoId)
-
 	if err != nil {
 		return nil, fmt.Errorf("ExtractCaptions failed: %w", err)
 	}
 
-	// Run scripts/extract_captions to convert to a JSON format
+	fmt.Println("Downloaded vtt file for Id:", videoId)
+
+	// Run scripts/extract_captions.py to convert to a JSON format
 	cmd := exec.Command("./venv/Scripts/python", "scripts/extract_captions.py", getFileNameFromId(videoId))
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to run extract_captions.py: %w\nOutput: %s", err, cmdOutput)
+		return nil, fmt.Errorf("Failed to run extract_captions.py: %w\nOutput: %s", err, cmdOutput)
 	}
 
-	captionResult := CaptionResult{VideoId: videoId, CaptionPath: "tmp/captions_parsed/" + videoId}
+	captionResult := CaptionResult{VideoId: videoId, CaptionPath: "tmp/captions_parsed/" + videoId + ".en.json"}
 	fmt.Println("Done extracting")
 
 	return &captionResult, nil
