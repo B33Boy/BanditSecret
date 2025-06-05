@@ -5,18 +5,18 @@ DROP TABLE IF EXISTS Captions;
 DROP TABLE IF EXISTS Videos;
 
 CREATE TABLE Videos (
-    Id VARCHAR(11) PRIMARY KEY,
-    Title VARCHAR(100) NOT NULL,
-    VideoUrl VARCHAR(50) NOT NULL
+    Id VARCHAR(20) PRIMARY KEY,
+    Title VARCHAR(255) NOT NULL,
+    VideoUrl VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE Captions (
     Id INT AUTO_INCREMENT PRIMARY KEY,
-    VideoId VARCHAR(11) NOT NULL,
+    VideoId VARCHAR(20) NOT NULL,
     StartTime DOUBLE NOT NULL,
     EndTime DOUBLE NOT NULL,
     CaptionText Text NOT NULL,
     FOREIGN KEY (VideoId) REFERENCES Videos(Id)
 );
 
-CREATE INDEX idx_vid_start ON Captions(VideoId, StartTime);
+-- CREATE INDEX idx_vid_start ON Captions(VideoId, StartTime);

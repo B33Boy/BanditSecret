@@ -70,10 +70,12 @@ func InitDb() (*sql.DB, error) {
 func StoreVideoInfoToDb(db *sql.DB, metadata *parser.CaptionMetadata) {
 
 	// Populate Videos Table
-	_, err := db.Exec("INSERT INTO Videos (VideoId, Title, VideoUrl) VALUES (?, ?, ?)", metadata.VideoId, metadata.VideoTitle, metadata.Url)
+	_, err := db.Exec("INSERT INTO Videos (Id, Title, VideoUrl) VALUES (?, ?, ?)", metadata.VideoId, metadata.VideoTitle, metadata.Url)
 
 	if err != nil {
-		log.Printf("StoreVideoInfoToDB failed: %w", err)
+		log.Printf("StoreVideoInfoToDB failed: %v", err)
+	} else {
+		log.Printf("StoreVideoInfoToDB succeeded for Video Id %v", metadata.VideoId)
 	}
 }
 
@@ -83,7 +85,7 @@ func StoreCaptionsToDb(db *sql.DB, captions []parser.CaptionParsed) {
 	for _, caption := range captions {
 		err := addCaptionEntry(db, caption)
 		if err != nil {
-			log.Printf("StoreCaptionsToDb, caption entry failed: %w", err)
+			log.Printf("StoreCaptionsToDb, caption entry failed: %v", err)
 			continue
 		}
 	}
@@ -101,7 +103,7 @@ func addCaptionEntry(db *sql.DB, caption parser.CaptionParsed) error {
 		return err
 	}
 
-	_, err = db.Exec("INSERT INTO Captions (VideoId, StartTime, EndTime, CaptionText) VALUES (?, ?, ?, ?)", caption.Id, start_timestamp, end_timestamp, caption.Text)
+	_, err = db.Exec("INSERT INTO Captions (VideoId, StartTime, EndTime, CaptionText) VALUES (?, ?, ?, ?)", caption.VideoId, start_timestamp, end_timestamp, caption.Text)
 
 	return err
 }

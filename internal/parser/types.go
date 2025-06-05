@@ -8,8 +8,8 @@ type CaptionMetadata struct {
 }
 
 type CaptionParsed struct {
-	Id    string `json:"video_id"`
-	Start string `json:"start"`
-	End   string `json:"end"`
-	Text  string `json:"text"`
+	VideoId string `json:"video_id"`
+	Start   string `json:"start"`
+	End     string `json:"end"`
+	Text    string `json:"text"`
 }

@@ -14,6 +14,8 @@ def parse_captions(filepath: str):
     output_dir: str = 'tmp/captions_parsed/'
     json_file: str = f"{output_dir}{video_id}.json"
 
+    video_id = video_id.replace('.en', '')
+
     for cap in webvtt.read(filepath):
         cap_entry = {
             "video_id": video_id,
