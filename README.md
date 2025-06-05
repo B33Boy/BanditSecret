@@ -21,6 +21,11 @@ pip install -r requirements.txt
 ```
 
 ## Running
+Creating the database
+```
+mysql -u root -p < internal/storage/schema.sql
+```
+
 
 Build the binary 
 ```
