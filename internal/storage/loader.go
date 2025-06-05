@@ -5,21 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
+	"time"
+
+	parser "banditsecret/internal/parser"
 
 	"github.com/go-sql-driver/mysql"
 )
 
-var db *sql.DB
-
-type ParsedCaption struct {
-	Id    string `json:"video_id"`
-	Start string `json:"start"`
-	End   string `json:"end"`
-	Text  string `json:"text"`
-}
-
-func LoadCaptionsFromJson(filepath string) ([]ParsedCaption, error) {
+func LoadCaptionsFromJson(filepath string) ([]parser.CaptionParsed, error) {
 
 	// TODO: Read chunk by chunk for larger files
 	// Open JSON file and insert into DB
@@ -36,7 +31,7 @@ func LoadCaptionsFromJson(filepath string) ([]ParsedCaption, error) {
 		return nil, fmt.Errorf("LoadCaptions failed to read file: %w", err)
 	}
 
-	var captions []ParsedCaption
+	var captions []parser.CaptionParsed
 	if err := json.Unmarshal(bytes, &captions); err != nil {
 		return nil, fmt.Errorf("LoadCaptions failed to parse JSON file: %w", err)
 	}
@@ -48,8 +43,7 @@ func LoadCaptionsFromJson(filepath string) ([]ParsedCaption, error) {
 	return captions, nil
 }
 
-func StoreCaptionsToDb(captions []ParsedCaption) error {
-	// Capture connection properties.
+func InitDb() (*sql.DB, error) {
 	cfg := mysql.NewConfig()
 	cfg.User = os.Getenv("DB_USER")
 	cfg.Passwd = os.Getenv("DB_PASS")
@@ -59,16 +53,68 @@ func StoreCaptionsToDb(captions []ParsedCaption) error {
 
 	db, err := sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
-		return fmt.Errorf("StoreCaptionsToDb failed to connect to DB: %w", err)
+		return nil, fmt.Errorf("failed to connect to DB: %w", err)
 	}
 
-	pingErr := db.Ping()
+	err = db.Ping()
 
-	if pingErr != nil {
-		return fmt.Errorf("StoreCaptionsToDb failed to ping DB: %w", pingErr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ping DB: %w", err)
 	}
 
-	fmt.Println("Connected")
+	fmt.Println("Connected to DB!")
 
-	return nil
+	return db, nil
+}
+
+func StoreVideoInfoToDb(db *sql.DB, metadata *parser.CaptionMetadata) {
+
+	// Populate Videos Table
+	_, err := db.Exec("INSERT INTO Videos (VideoId, Title, VideoUrl) VALUES (?, ?, ?)", metadata.VideoId, metadata.VideoTitle, metadata.Url)
+
+	if err != nil {
+		log.Printf("StoreVideoInfoToDB failed: %w", err)
+	}
+}
+
+func StoreCaptionsToDb(db *sql.DB, captions []parser.CaptionParsed) {
+
+	// Populate Captions Table
+	for _, caption := range captions {
+		err := addCaptionEntry(db, caption)
+		if err != nil {
+			log.Printf("StoreCaptionsToDb, caption entry failed: %w", err)
+			continue
+		}
+	}
+}
+
+func addCaptionEntry(db *sql.DB, caption parser.CaptionParsed) error {
+
+	start_timestamp, err := parseTimeStamp(caption.Start)
+	if err != nil {
+		return err
+	}
+
+	end_timestamp, err := parseTimeStamp(caption.End)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("INSERT INTO Captions (VideoId, StartTime, EndTime, CaptionText) VALUES (?, ?, ?, ?)", caption.Id, start_timestamp, end_timestamp, caption.Text)
+
+	return err
+}
+
+func parseTimeStamp(timestamp string) (time.Duration, error) {
+	t, err := time.Parse("15:04:05.000", timestamp)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return time.Duration(t.Hour())*time.Hour +
+		time.Duration(t.Minute())*time.Minute +
+		time.Duration(t.Second())*time.Second +
+		time.Duration(t.Nanosecond()), nil
 }

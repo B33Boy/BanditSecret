@@ -1,6 +1,7 @@
 package main
 
 import (
+	"banditsecret/internal/parser"
 	"banditsecret/internal/storage"
 	"fmt"
 	"log"
@@ -9,35 +10,38 @@ import (
 )
 
 func main() {
-	// // TODO: This should be the entrypoint for the server
+	// TODO: This should be the entrypoint for the server
 
-	// // TEMP: Testing end to end with sample
-	// fmt.Println("Starting Extraction")
-	// captionResult, err := parser.ExtractCaptions("https://youtu.be/jVpsLMCIB0Y")
+	// TEMP: Testing end to end with sample
+	fmt.Println("Starting Extraction")
+	parsedDir := "tmp/captions_parsed/"
+	captionMetadata, err := parser.ExtractCaptions("https://youtu.be/jVpsLMCIB0Y", parsedDir)
 
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
+	if err != nil {
+		log.Fatalf("ExtractCaptions failed: %w", err)
+	}
 
-	// fmt.Println(*captionResult)
+	fmt.Println(*captionMetadata)
 
 	// Load .env
-	var err = godotenv.Load()
+	err = godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal(err)
 	}
 
 	// Load JSON to DB
-	// captionResult.CaptionPath
-	captions, err := storage.LoadCaptionsFromJson("tmp/captions_parsed/jVpsLMCIB0Y.en.json")
+	// captionMetadata.CaptionPath
+	captionsList, err := storage.LoadCaptionsFromJson(parsedDir + "jVpsLMCIB0Y.en.json")
 
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalf("LoadCaptionsFromJson failed: %w", err)
 	}
 
-	storage.StoreCaptionsToDb(captions)
+	db, err := storage.InitDb()
+
+	storage.StoreVideoInfoToDb(db, captionMetadata)
+
+	storage.StoreCaptionsToDb(db, captionsList)
 
 	// for _, cap := range captions {
 	// 	fmt.Printf("ID: %s, Start: %s, End: %s, Text: %s, \n", cap.Id, cap.Start, cap.End, cap.Text)

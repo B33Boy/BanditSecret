@@ -1,69 +1,71 @@
 package parser
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"os/exec"
-	"strings"
 )
 
-type CaptionResult struct {
-	VideoId     string
-	CaptionPath string
-}
-
-func ExtractCaptions(url string) (*CaptionResult, error) {
+func ExtractCaptions(url string, outputDir string) (*CaptionMetadata, error) {
 
 	// Run yt-dlp to download vtt file
-	videoId, err := downloadCaptions(url)
+	captionMetadata, err := getMetadata(url, outputDir)
+
+	err = getCaptions(captionMetadata)
 	if err != nil {
-		return nil, fmt.Errorf("ExtractCaptions failed: %w", err)
+		return nil, fmt.Errorf("getCaptions failed: %w", err)
 	}
 
-	fmt.Println("Downloaded vtt file for Id:", videoId)
+	log.Println("Downloaded vtt file for Id:", captionMetadata.VideoId)
 
 	// Run scripts/extract_captions.py to convert to a JSON format
-	cmd := exec.Command("./venv/Scripts/python", "scripts/extract_captions.py", getFileNameFromId(videoId))
+	cmd := exec.Command("./venv/Scripts/python", "scripts/extract_captions.py", getVttFileNameFromId(captionMetadata.VideoId))
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to run extract_captions.py: %w\nOutput: %s", err, cmdOutput)
+		return nil, fmt.Errorf("failed to run extract_captions.py: %w\nOutput: %s", err, cmdOutput)
 	}
 
-	captionResult := CaptionResult{VideoId: videoId, CaptionPath: "tmp/captions_parsed/" + videoId + ".en.json"}
-	fmt.Println("Done extracting")
+	log.Println("Done extracting")
 
-	return &captionResult, nil
+	return captionMetadata, nil
 }
 
-func downloadCaptions(url string) (string, error) {
+func getCaptions(metadata *CaptionMetadata) error {
 
-	videoId, err := getId(url)
-	if err != nil {
-		return "", err
-	}
-
-	cmd := exec.Command("yt-dlp.exe", "--write-subs", "--write-auto-subs", "--no-warnings", "--sub-langs", "en", "--skip-download", url, "-o", "tmp/captions/"+videoId)
+	cmd := exec.Command("yt-dlp.exe", "--write-subs", "--write-auto-subs", "--no-warnings", "--sub-langs", "en", "--skip-download", metadata.Url, "-o", metadata.CaptionPath)
 
 	cmdOutput, err := cmd.CombinedOutput()
 
 	if err != nil {
-		return "", fmt.Errorf("unable to download video captions: %w\nOutput: %s", err, cmdOutput)
+		return fmt.Errorf("unable to download video captions: %w\nOutput: %s", err, cmdOutput)
 	} else {
-		fmt.Println(string(cmdOutput))
+		log.Println(string(cmdOutput))
 	}
 
-	return videoId, nil
+	return nil
 }
 
-func getId(url string) (string, error) {
+func getMetadata(url string, path string) (*CaptionMetadata, error) {
 
-	idBytes, err := exec.Command("yt-dlp.exe", "--get-id", "--no-warnings", "--skip-download", url).Output()
+	raw, err := exec.Command("yt-dlp.exe", "--get-id", "--get-title", "--no-warnings", "--skip-download", url).Output()
 	if err != nil {
-		return "", fmt.Errorf("unable to fetch video Id")
+		return "", "", fmt.Errorf("unable to fetch video Id")
 	}
 
-	return strings.TrimSpace(string(idBytes)), nil
+	parts := bytes.Split(raw, []byte("\n"), 2)
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("unable to download video captions: %w\nOutput: %s", err, cmdOutput)
+	}
+
+	id := string(bytes.TrimSpace(parts[0]))
+	title := string(bytes.TrimSpace(parts[1]))
+
+	metadata := CaptionMetadata{VideoId: id, VideoTitle: title, Url: url, CaptionPath: path + id + "en.json"}
+
+	return &metadata, nil
 }
 
-func getFileNameFromId(id string) string {
+func getVttFileNameFromId(id string) string {
 	return "tmp/captions/" + id + ".en.vtt"
 }
