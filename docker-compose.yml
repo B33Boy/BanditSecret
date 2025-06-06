@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8
+    restart: always
+    env_file:
+      - .env
+    container_name: caption_db
+    volumes:
+      - ./schema:/docker-entrypoint-initdb.d:ro
+      - caption_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - app_network
+
+volumes:
+  caption_data:
+
+networks:
+  app_network:
+    driver: bridge

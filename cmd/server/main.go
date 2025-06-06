@@ -15,7 +15,7 @@ func main() {
 	// TEMP: Testing end to end with sample
 	fmt.Println("Starting Extraction")
 	parsedDir := "tmp/captions_parsed/"
-	captionMetadata, err := parser.ExtractCaptions("https://youtu.be/jVpsLMCIB0Y", parsedDir)
+	captionMetadata, err := parser.ExtractCaptions("https://youtu.be/RQdxHi4_Pvc", parsedDir)
 
 	if err != nil {
 		log.Fatalf("ExtractCaptions failed: %v", err)
@@ -24,14 +24,14 @@ func main() {
 	fmt.Println(*captionMetadata)
 
 	// Load .env
-	err = godotenv.Load()
+	err = godotenv.Load(".env")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Load JSON to DB
 	// captionMetadata.CaptionPath
-	captionsList, err := storage.LoadCaptionsFromJson(parsedDir + "jVpsLMCIB0Y.en.json")
+	captionsList, err := storage.LoadCaptionsFromJson(parsedDir + "RQdxHi4_Pvc.en.json")
 
 	if err != nil {
 		log.Fatalf("LoadCaptionsFromJson failed: %v", err)

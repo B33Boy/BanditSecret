@@ -49,7 +49,7 @@ func InitDb() (*sql.DB, error) {
 	cfg.Passwd = os.Getenv("DB_PASS")
 	cfg.Net = "tcp"
 	cfg.Addr = os.Getenv("DB_HOST") + ":" + os.Getenv("DB_PORT")
-	cfg.DBName = os.Getenv("DB_NAME")
+	cfg.DBName = os.Getenv("MYSQL_DATABASE")
 
 	db, err := sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
@@ -75,7 +75,7 @@ func StoreVideoInfoToDb(db *sql.DB, metadata *parser.CaptionMetadata) {
 	if err != nil {
 		log.Printf("StoreVideoInfoToDB failed: %v", err)
 	} else {
-		log.Printf("StoreVideoInfoToDB succeeded for Video Id %v", metadata.VideoId)
+		log.Printf("StoreVideoInfoToDB succeeded for Video Id: %v", metadata.VideoId)
 	}
 }
 
@@ -89,6 +89,8 @@ func StoreCaptionsToDb(db *sql.DB, captions []parser.CaptionParsed) {
 			continue
 		}
 	}
+
+	log.Printf("StoreCaptionsToDb succeeded for Video Id: %v", captions[0].VideoId)
 }
 
 func addCaptionEntry(db *sql.DB, caption parser.CaptionParsed) error {

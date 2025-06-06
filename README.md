@@ -29,12 +29,25 @@ mysql -u root -p < internal/storage/schema.sql
 
 Build the binary 
 ```
-go build -o bin/search.exe ./cmd/search
+go build -o bin/server.exe ./cmd/server
 ```
 
 ```
-.\bin\search.exe
+.\bin\server.exe
 ```
+
+## Running with Docker
+Completely remove network, volume mount, and container
+```
+docker-compose down -v
+```
+
+
+```
+docker-compose up --build
+```
+
+
 
 ## License
 MIT - use freely, give credit where it's due

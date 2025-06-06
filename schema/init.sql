@@ -1,16 +1,17 @@
 CREATE DATABASE IF NOT EXISTS BanditSecret;
+
+GRANT ALL PRIVILEGES ON BanditSecret.* TO 'admin'@'%';
+FLUSH PRIVILEGES;
+
 USE BanditSecret;
 
-DROP TABLE IF EXISTS Captions;
-DROP TABLE IF EXISTS Videos;
-
-CREATE TABLE Videos (
+CREATE TABLE IF NOT EXISTS Videos (
     Id VARCHAR(20) PRIMARY KEY,
     Title VARCHAR(255) NOT NULL,
     VideoUrl VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE Captions (
+CREATE TABLE IF NOT EXISTS Captions (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     VideoId VARCHAR(20) NOT NULL,
     StartTime DOUBLE NOT NULL,
@@ -19,4 +20,4 @@ CREATE TABLE Captions (
     FOREIGN KEY (VideoId) REFERENCES Videos(Id)
 );
 
--- CREATE INDEX idx_vid_start ON Captions(VideoId, StartTime);
+CREATE INDEX idx_vid_start ON Captions(VideoId, StartTime);
