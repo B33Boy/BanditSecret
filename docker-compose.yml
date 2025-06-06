@@ -3,10 +3,10 @@ version: "3.8"
 services:
   db:
     image: mysql:8
+    container_name: caption_db
     restart: always
     env_file:
-      - .env
-    container_name: caption_db
+      - ./envs/mysql.env
     volumes:
       - ./schema:/docker-entrypoint-initdb.d:ro
       - caption_data:/var/lib/mysql
@@ -15,8 +15,37 @@ services:
     networks:
       - app_network
 
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+    container_name: es
+    environment:
+      - node.name=es
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    networks:
+      - app_network
+
+  # kibana:
+  #  depends_on:
+  #    es:
+  #     condition: service_healthy
+  #   image: docker.elastic.co/kibana/kibana:9.0.0
+  #   environment:
+  #     SERVER_NAME: kibana.example.org
+  #     ELASTICSEARCH_HOSTS: '["http://es:9200"]'
+
 volumes:
   caption_data:
+  es_data:
 
 networks:
   app_network:

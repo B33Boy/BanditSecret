@@ -49,7 +49,7 @@ func InitDb() (*sql.DB, error) {
 	cfg.Passwd = os.Getenv("DB_PASS")
 	cfg.Net = "tcp"
 	cfg.Addr = os.Getenv("DB_HOST") + ":" + os.Getenv("DB_PORT")
-	cfg.DBName = os.Getenv("MYSQL_DATABASE")
+	cfg.DBName = os.Getenv("DB_NAME")
 
 	db, err := sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
