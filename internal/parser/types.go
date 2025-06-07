@@ -1,5 +1,7 @@
 package parser
 
+type TimeMs uint32
+
 type CaptionMetadata struct {
 	VideoId     string
 	VideoTitle  string
@@ -9,7 +11,7 @@ type CaptionMetadata struct {
 
 type CaptionParsed struct {
 	VideoId string `json:"video_id"`
-	Start   string `json:"start"`
-	End     string `json:"end"`
+	Start   TimeMs `json:"start"`
+	End     TimeMs `json:"end"`
 	Text    string `json:"text"`
 }
