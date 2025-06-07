@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   db:
-    image: mysql:8
+    image: mysql:${MYSQL_VERSION}
     container_name: caption_db
     restart: always
     env_file:
@@ -16,13 +16,13 @@ services:
       - app_network
 
   es:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION}
     container_name: es
     environment:
-      - node.name=es
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - node.name=${NODE_NAME:-es}
+      - discovery.type=${DISCOVERY_TYPE:-single-node}
+      - xpack.security.enabled=${XPACK_SECURITY:-false}
+      - ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms512m -Xmx512m}
     ulimits:
       memlock:
         soft: -1
@@ -30,18 +30,42 @@ services:
     volumes:
       - es_data:/usr/share/elasticsearch/data
     ports:
-      - 9200:9200
+      - "${ES_PORT:-9200}:9200"
     networks:
       - app_network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:9200/_cat/health?h=status | grep -qE '^green|yellow'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
 
-  # kibana:
-  #  depends_on:
-  #    es:
-  #     condition: service_healthy
-  #   image: docker.elastic.co/kibana/kibana:9.0.0
-  #   environment:
-  #     SERVER_NAME: kibana.example.org
-  #     ELASTICSEARCH_HOSTS: '["http://es:9200"]'
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${KIBANA_VERSION}
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es:9200
+    ports:
+      - ${KIBANA_PORT:-5601}:5601
+    networks:
+      - app_network
+    depends_on:
+      es:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -I http://localhost:5601/api/status | grep -q '200 OK'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
 
 volumes:
   caption_data:
