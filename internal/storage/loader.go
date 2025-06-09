@@ -14,9 +14,9 @@ import (
 )
 
 type CaptionMetadata = parser.CaptionMetadata
-type CaptionParsed = parser.CaptionParsed
+type CaptionEntry = parser.CaptionEntry
 
-func LoadCaptionsFromJson(filepath string) ([]CaptionParsed, error) {
+func LoadCaptionsFromJson(filepath string) ([]CaptionEntry, error) {
 
 	// TODO: Read chunk by chunk for larger files
 	// Open JSON file and insert into DB
@@ -34,7 +34,7 @@ func LoadCaptionsFromJson(filepath string) ([]CaptionParsed, error) {
 	}
 
 	// captions, err := parseCaptions(bytes)
-	var captions []CaptionParsed
+	var captions []CaptionEntry
 	err = json.Unmarshal(bytes, &captions)
 	if err != nil {
 		return nil, fmt.Errorf("LoadCaptions failed to parse JSON file: %w", err)
@@ -79,7 +79,21 @@ func StoreVideoInfoToDb(db *sql.DB, metadata *CaptionMetadata) {
 	}
 }
 
-func StoreCaptionsToDb(db *sql.DB, captions []CaptionParsed) {
+func StoreCaptionsToDb(db *sql.DB, captions []CaptionEntry) {
+
+	idToSearch := captions[0].VideoId
+	var count int
+
+	err := db.QueryRow(`SELECT COUNT(*) FROM Captions WHERE VideoId = ?`, idToSearch).Scan(&count)
+	if err != nil {
+		log.Printf("StoreCaptionsToDb failed: %v", err)
+		return
+	}
+
+	if int(count) > 0 {
+		log.Printf("StoreCaptionsToDb, captions for video %v already exist in db", idToSearch)
+		return
+	}
 
 	// Populate Captions Table
 	for _, caption := range captions {
@@ -93,7 +107,7 @@ func StoreCaptionsToDb(db *sql.DB, captions []CaptionParsed) {
 	log.Printf("StoreCaptionsToDb succeeded for Video Id: %v", captions[0].VideoId)
 }
 
-func addCaptionEntry(db *sql.DB, caption CaptionParsed) error {
+func addCaptionEntry(db *sql.DB, caption CaptionEntry) error {
 
 	_, err := db.Exec("INSERT INTO Captions (VideoId, StartTime, EndTime, CaptionText) VALUES (?, ?, ?, ?)", caption.VideoId, caption.Start, caption.End, caption.Text)
 	return err

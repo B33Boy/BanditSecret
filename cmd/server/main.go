@@ -2,6 +2,7 @@ package main
 
 import (
 	"banditsecret/internal/parser"
+	"banditsecret/internal/search"
 	"banditsecret/internal/storage"
 	"fmt"
 	"log"
@@ -15,7 +16,7 @@ func main() {
 	// TEMP: Testing end to end with sample
 	fmt.Println("Starting Extraction")
 	parsedDir := "tmp/captions_parsed/"
-	captionMetadata, err := parser.ExtractCaptions("https://youtu.be/RQdxHi4_Pvc", parsedDir)
+	captionMetadata, err := parser.ExtractCaptions("https://youtu.be/jVpsLMCIB0Y", parsedDir)
 
 	if err != nil {
 		log.Fatalf("ExtractCaptions failed: %v", err)
@@ -23,15 +24,14 @@ func main() {
 
 	fmt.Println(*captionMetadata)
 
-	// Load .env
-	err = godotenv.Load(".env")
+	err = godotenv.Load("./envs/app.env")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Load JSON to DB
 	// captionMetadata.CaptionPath
-	captionsList, err := storage.LoadCaptionsFromJson(parsedDir + "RQdxHi4_Pvc.en.json")
+	captions, err := storage.LoadCaptionsFromJson(parsedDir + "jVpsLMCIB0Y.en.json")
 
 	if err != nil {
 		log.Fatalf("LoadCaptionsFromJson failed: %v", err)
@@ -45,10 +45,13 @@ func main() {
 
 	storage.StoreVideoInfoToDb(db, captionMetadata)
 
-	storage.StoreCaptionsToDb(db, captionsList)
+	storage.StoreCaptionsToDb(db, captions)
+
+	search.StoreCaptionsToSearchEngine(captions)
 
 	// for _, cap := range captionsList {
 	// 	fmt.Printf("ID: %s, Start: %s, End: %s, Text: %s, \n", cap.Id, cap.Start, cap.End, cap.Text)
 	// }
 
+	// search.StoreCaptionsToSearchEngine()
 }

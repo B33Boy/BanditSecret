@@ -9,7 +9,7 @@ type CaptionMetadata struct {
 	CaptionPath string
 }
 
-type CaptionParsed struct {
+type CaptionEntry struct {
 	VideoId string `json:"video_id"`
 	Start   TimeMs `json:"start"`
 	End     TimeMs `json:"end"`
