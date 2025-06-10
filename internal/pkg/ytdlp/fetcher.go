@@ -6,7 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os/exec"
+
+	cmdutil "banditsecret/internal/pkg/cmdutil"
 )
 
 // CaptionMetadata holds metadata about a YouTube video and its captions.
@@ -23,38 +24,14 @@ type YTFetcher interface {
 	DownloadCaptions(videoId, url, outputDir string) error
 }
 
-// Defines the interface to execute external commands
-type CmdRunner interface {
-	CombinedOutput(name string, arg ...string) ([]byte, error)
-	Output(name string, arg ...string) ([]byte, error)
-}
-
-// Concrete CmdRunner
-type defaultCmdRunner struct{}
-
-func (cr *defaultCmdRunner) CombinedOutput(name string, arg ...string) ([]byte, error) {
-	cmd := exec.Command(name, arg...)
-	return cmd.CombinedOutput()
-}
-
-func (cr *defaultCmdRunner) Output(name string, arg ...string) ([]byte, error) {
-	cmd := exec.Command(name, arg...)
-	return cmd.Output()
-}
-
-// Factory to return a DefaultCmdRunner struct
-func NewDefaultCmdRunner() CmdRunner {
-	return &defaultCmdRunner{}
-}
-
 // Concrete implementation of YTFetcher
 type FetchYTService struct {
 	executable string
-	cmdRunner  CmdRunner
+	cmdRunner  cmdutil.CmdRunner
 }
 
 // Factory to return a new FetchYTService Service
-func NewFetchYTService(executable string, cmdRunner CmdRunner) (*FetchYTService, error) {
+func NewFetchYTService(executable string, cmdRunner cmdutil.CmdRunner) (*FetchYTService, error) {
 
 	if executable == "" {
 		return nil, errors.New("executable cannot be empty")
