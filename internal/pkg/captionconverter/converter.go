@@ -5,46 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os/exec"
+
+	cmdutil "banditsecret/internal/pkg/cmdutil"
 )
 
 type Converter interface {
 	ConvertVTTToJSON(vttPath, jsonPath string) error
 }
 
-// Defines the interface to execute external commands
-type CmdRunner interface {
-	CombinedOutput(name string, arg ...string) ([]byte, error)
-	Output(name string, arg ...string) ([]byte, error)
-}
-
-// Concrete CmdRunner
-type defaultCmdRunner struct{}
-
-func (cr *defaultCmdRunner) CombinedOutput(name string, arg ...string) ([]byte, error) {
-	cmd := exec.Command(name, arg...)
-	return cmd.CombinedOutput()
-}
-
-func (cr *defaultCmdRunner) Output(name string, arg ...string) ([]byte, error) {
-	cmd := exec.Command(name, arg...)
-	return cmd.Output()
-}
-
-// Factory to return a DefaultCmdRunner struct
-func NewDefaultCmdRunner() CmdRunner {
-	return &defaultCmdRunner{}
-}
-
 // Concrete ConverterService implements Converter
 type ConverterService struct {
 	pythonExecutable    string
 	converterScriptPath string
-	cmdRunner           CmdRunner
+	cmdRunner           cmdutil.CmdRunner
 }
 
 // Factory to create a concrete ConverterService
-func NewConverterService(pythonExecutable, converterScriptPath string, cmdRunner CmdRunner) (*ConverterService, error) {
+func NewConverterService(pythonExecutable, converterScriptPath string, cmdRunner cmdutil.CmdRunner) (*ConverterService, error) {
 
 	if pythonExecutable == "" || converterScriptPath == "" {
 		return nil, errors.New("pythonExecutable or converterScriptPath cannot be empty")
