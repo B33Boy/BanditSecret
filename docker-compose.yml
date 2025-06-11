@@ -11,18 +11,15 @@ services:
       - ./schema:/docker-entrypoint-initdb.d:ro
       - caption_data:/var/lib/mysql
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
     networks:
       - app_network
 
   es:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION}
     container_name: es
-    environment:
-      - node.name=${NODE_NAME:-es}
-      - discovery.type=${DISCOVERY_TYPE:-single-node}
-      - xpack.security.enabled=${XPACK_SECURITY:-false}
-      - ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms512m -Xmx512m}
+    env_file:
+      - ./envs/elasticsearch.env
     ulimits:
       memlock:
         soft: -1
@@ -66,7 +63,6 @@ services:
       timeout: 10s
       retries: 12
       start_period: 60s
-
 volumes:
   caption_data:
   es_data:
