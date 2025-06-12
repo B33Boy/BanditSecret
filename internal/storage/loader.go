@@ -84,7 +84,7 @@ func (s *LoaderService) upsertVideoMetadata(tx *sql.Tx, meta *CaptionMetadata) e
 	_, err := tx.Exec(upsertVideoSql, meta.VideoId, meta.VideoTitle, meta.Url)
 
 	if err != nil {
-		fmt.Errorf("failed to upsert video metadata for %s: %w", meta.VideoId, err)
+		return fmt.Errorf("failed to upsert video metadata for %s: %w", meta.VideoId, err)
 	}
 	log.Printf("Upserted video metadata for %s", meta.VideoId)
 	return nil
@@ -97,7 +97,7 @@ func (s *LoaderService) deleteExistingCaptions(tx *sql.Tx, videoId string) error
 	_, err := tx.Exec(deleteCaptionsSql, videoId)
 
 	if err != nil {
-		fmt.Errorf("failed to delete existing captions for video %s: %w", videoId, err)
+		return fmt.Errorf("failed to delete existing captions for video %s: %w", videoId, err)
 	}
 	log.Printf("Deleted existing captions for %s", videoId)
 	return nil
