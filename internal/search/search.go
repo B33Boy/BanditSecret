@@ -49,7 +49,7 @@ func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata
 		FlushInterval: 30 * time.Second, // The periodic flush interval
 	})
 	if err != nil {
-		return fmt.Errorf("Error creating the indexer: %s", err)
+		return fmt.Errorf("error creating the indexer: %s", err)
 	}
 	defer bi.Close(ctx)
 
@@ -93,7 +93,7 @@ func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata
 	biStats := bi.Stats()
 	if biStats.NumFailed > 0 {
 		return fmt.Errorf(
-			"Bulk indexing had %d failures out of %d actions", biStats.NumFailed, biStats.NumAdded,
+			"bulk indexing had %d failures out of %d actions", biStats.NumFailed, biStats.NumAdded,
 		)
 	}
 
