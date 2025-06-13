@@ -1,6 +1,9 @@
 package cmdutil
 
-import "os/exec"
+import (
+	"os"
+	"os/exec"
+)
 
 // Defines the interface to execute external commands
 type CmdRunner interface {
@@ -24,4 +27,9 @@ func (cr *defaultCmdRunner) Output(name string, arg ...string) ([]byte, error) {
 // Factory to return a DefaultCmdRunner struct
 func NewDefaultCmdRunner() CmdRunner {
 	return &defaultCmdRunner{}
+}
+
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	return os.IsNotExist(err)
 }
