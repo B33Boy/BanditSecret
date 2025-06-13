@@ -113,7 +113,7 @@ func InitEsClient() (*es.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	// Create config. include third party backoff to control retry delays
+	// Create config, and include third party backoff to control retry delays
 	retryBackoff := backoff.NewExponentialBackOff()
 
 	log.Printf("Initializing ElasticSearch Client For instance runnning at %s, %s, \n", os.Getenv("ES_HOST"), os.Getenv("ES_PORT"))
