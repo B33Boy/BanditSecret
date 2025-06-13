@@ -36,14 +36,16 @@ func NewSearchService(esClient *es.Client) *SearchService {
 
 func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata, captions []CaptionEntry) error {
 
-	log.Println("Indexing Captions...")
+	log.Println("Inserting Captions into ElasticSearch")
 	if s.esClient == nil {
 		return errors.New("elasticsearch client is not initialized")
 	}
 
+	index_name := os.Getenv("CAPTIONS_INDEX")
+
 	// Create bulk indexer
 	bi, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
-		Index:         "captions",
+		Index:         index_name,
 		Client:        s.esClient,
 		NumWorkers:    runtime.NumCPU(), // The number of worker goroutines
 		FlushBytes:    int(5e+6),        // The flush threshold in bytes
@@ -54,24 +56,20 @@ func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata
 	}
 	defer bi.Close(ctx)
 
-	log.Println("Created Bulk Indexer")
-
-	// Index should already be created
 	// Add captions to bulk indexer
 	for _, caption := range captions {
-		doc := map[string]interface{}{
-			"video_id":     meta.VideoId,
-			"video_title":  meta.VideoTitle,
-			"url":          meta.Url,
-			"start_ms":     caption.Start,
-			"end_ms":       caption.End,
-			"caption_text": caption.Text,
+		doc := map[string]any{
+			"VideoId":    meta.VideoId,
+			"VideoTitle": meta.VideoTitle,
+			"Url":        meta.Url,
+			"Start":      caption.Start,
+			"End":        caption.End,
+			"Text":       caption.Text,
 		}
 		docJson, err := json.Marshal(doc)
 		if err != nil {
 			return fmt.Errorf("failed to marshal caption document to JSON: %w", err)
 		}
-		log.Println("Created caption map")
 
 		err = bi.Add(ctx, esutil.BulkIndexerItem{
 			Action:     "index",
@@ -88,7 +86,6 @@ func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata
 				}
 			},
 		})
-		log.Println("Added caption to es")
 
 		if err != nil {
 			return fmt.Errorf("failed to add caption to bulk indexer")
@@ -102,15 +99,14 @@ func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata
 		)
 	}
 
-	log.Printf("Successfully indexed %d captions for video %s into Elasticsearch index %s", len(captions), meta.VideoId, "captions")
+	log.Printf("Successfully indexed %d captions for video %s into Elasticsearch index %s", len(captions), meta.VideoId, index_name)
 
 	return nil
 }
 
 func InitEsClient() (*es.Client, error) {
 
-	timeout := time.Duration(10) * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// Create config, and include third party backoff to control retry delays
@@ -156,61 +152,3 @@ func (s *SearchService) CreateIndex(ctx context.Context, name string) error {
 	}
 	return nil
 }
-
-// =============================================================================================
-
-// func StoreCaptionsToSearchEngine(captions []CaptionEntry) {
-// 	es, err := elasticsearch.NewClient(elasticsearch.Config{
-// 		Addresses: []string{"http://localhost:9200"},
-// 	})
-
-// 	if err != nil {
-// 		log.Fatalf("Error creating client %s", err)
-// 	}
-
-// 	if _, err := es.Info(); err != nil {
-// 		log.Fatalf("Error testing connection: %s", err)
-// 	}
-
-// 	indexName := "captions"
-// 	_, err = es.Indices.Create(indexName)
-// 	if err != nil {
-// 		fmt.Println("Index creation may have failed or already exists.")
-// 	}
-
-// 	err = bulkUpload(es, indexName, captions)
-// 	if err != nil {
-// 		log.Fatalf("Bulk upload failed: %s", err)
-// 	}
-// }
-
-// func bulkUpload(es *elasticsearch.Client, indexName string, captions []CaptionEntry) error {
-
-// 	var buf bytes.Buffer
-
-// 	for _, caption := range captions {
-
-// 		docID := fmt.Sprintf("%s-%d", caption.VideoId, caption.Start)
-// 		meta := fmt.Appendf(nil, `{ "index" : { "_index" : "%s", "_id" : "%s" } }%s`, indexName, docID, "\n")
-
-// 		data, err := json.Marshal(caption)
-// 		if err != nil {
-// 			log.Fatalf("Error marshaling caption: %s", err)
-// 		}
-// 		buf.Write(meta)
-// 		buf.Write(data)
-// 		buf.Write([]byte("\n"))
-// 	}
-
-// 	res, err := es.Bulk(bytes.NewReader(buf.Bytes()), es.Bulk.WithIndex(indexName))
-// 	if err != nil {
-// 		return fmt.Errorf("bulk indexing error: %w", err)
-// 	}
-// 	defer res.Body.Close()
-
-// 	if res.IsError() {
-// 		return fmt.Errorf("bulk response error: %s", res.String())
-// 	}
-// 	fmt.Println("Bulk upload successful.")
-// 	return nil
-// }
