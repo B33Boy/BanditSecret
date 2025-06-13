@@ -34,14 +34,21 @@ func NewConverterService(pythonExecutable, converterScriptPath string, cmdRunner
 	}, nil
 }
 
-func (cs *ConverterService) ConvertVTTToJSON(vttPath, jsonPath string) error {
+func (cs *ConverterService) ConvertVTTToJSON(vttFilePath, jsonFilePath string) error {
 
-	log.Printf("Converting VTT file: %s to JSON.", vttPath)
+	log.Printf("Attempting to convert %s to %s", vttFilePath, jsonFilePath)
+
+	if cmdutil.FileExists(jsonFilePath) {
+		log.Printf("Json file %s already exists! Skipping download\n", jsonFilePath)
+		return nil
+	}
+
+	log.Printf("Converting VTT file: %s to JSON.", vttFilePath)
 	cmdOutput, err := cs.cmdRunner.CombinedOutput(
 		cs.pythonExecutable,
 		cs.converterScriptPath,
-		vttPath,
-		jsonPath)
+		vttFilePath,
+		jsonFilePath)
 
 	if err != nil {
 		return fmt.Errorf("failed to run python script convert captions to json: %w\nOutput: %s", err, cmdOutput)
