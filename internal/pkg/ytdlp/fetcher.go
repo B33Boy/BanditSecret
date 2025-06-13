@@ -21,7 +21,7 @@ type CaptionMetadata struct {
 // Defines the interface to fetch youtube video data
 type YTFetcher interface {
 	GetMetadata(url, outputPath string) (*CaptionMetadata, error)
-	DownloadCaptions(videoId, url, outputDir string) error
+	DownloadCaptions(videoId, url, outputDir string) (string, error)
 }
 
 // Concrete implementation of YTFetcher
@@ -78,9 +78,17 @@ func (s *FetchYTService) GetMetadata(url, outputPath string) (*CaptionMetadata, 
 	return &metadata, nil
 }
 
-func (s *FetchYTService) DownloadCaptions(videoId, url, outputDir string) error {
+func (s *FetchYTService) DownloadCaptions(videoId, url, outputDir string) (string, error) {
 
-	log.Printf("Attempting to download captions for ID: %s, URL: %s into %s", videoId, url, outputDir)
+	log.Printf("Attempting to download captions for URL: %s into %s", url, outputDir)
+
+	vttCaptionsFile := outputDir + videoId + ".en.vtt"
+
+	if cmdutil.FileExists(vttCaptionsFile) {
+		log.Printf("Vtt file %s already exists! Skipping download\n", vttCaptionsFile)
+		return vttCaptionsFile, nil
+	}
+
 	cmdOutput, err := s.cmdRunner.CombinedOutput(
 		s.executable,
 		"--write-subs",
@@ -93,10 +101,11 @@ func (s *FetchYTService) DownloadCaptions(videoId, url, outputDir string) error 
 	)
 
 	if err != nil {
-		return fmt.Errorf("unable to download video captions using %s: %w\nOutput: %s", s.executable, err, cmdOutput)
-	} else {
-		log.Println(string(cmdOutput))
+		return "", fmt.Errorf("unable to download video captions using %s: %w\nOutput: %s", s.executable, err, cmdOutput)
 	}
 
-	return nil
+	log.Println(string(cmdOutput))
+	log.Printf("Downloaded vtt file for videoId: %s", videoId)
+
+	return vttCaptionsFile, nil
 }
