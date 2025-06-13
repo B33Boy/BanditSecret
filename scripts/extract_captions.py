@@ -6,12 +6,13 @@ import webvtt
 
 
 def parse_captions(vttpath: str, jsonpath: str):
-    print("Reading from ", vttpath)
+    print("[extract_captions.py] Reading from ", vttpath)
 
     captions: list[dict] = []
 
     # video_id = vttpath.split("/")[-1].replace('.vtt', '')
-    video_id = jsonpath.split("/")[-1].replace('.en', "")
+
+    video_id = jsonpath.split("/")[-1].replace('.en.json', "")
     # output_dir: str = 'tmp/captions_parsed/'
     # json_file: str = f"{output_dir}{video_id}.json"
     # video_id = video_id.replace('.en', '')

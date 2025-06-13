@@ -15,7 +15,7 @@ type CaptionMetadata struct {
 	VideoId     string
 	VideoTitle  string
 	Url         string
-	CaptionPath string // Path to VTT
+	CaptionPath string // Path to JSON
 }
 
 // Defines the interface to fetch youtube video data
@@ -49,6 +49,8 @@ func (s *FetchYTService) GetMetadata(url, outputPath string) (*CaptionMetadata, 
 	if url == "" || outputPath == "" {
 		return nil, errors.New("GetMetadata requires a valid url and outputPath")
 	}
+
+	fmt.Println(url, outputPath)
 
 	raw, err := s.cmdRunner.Output(
 		s.executable,

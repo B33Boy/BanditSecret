@@ -149,7 +149,8 @@ func InitDb() (*sql.DB, error) {
 	db.SetMaxIdleConns(25)
 	db.SetConnMaxLifetime(5 * time.Minute)
 
-	fmt.Println("Connected to database!")
+	log.Println("Connected to database!")
+	log.Println(*cfg)
 
 	return db, nil
 }

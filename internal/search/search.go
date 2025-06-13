@@ -36,6 +36,7 @@ func NewSearchService(esClient *es.Client) *SearchService {
 
 func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata, captions []CaptionEntry) error {
 
+	log.Println("Indexing Captions...")
 	if s.esClient == nil {
 		return errors.New("elasticsearch client is not initialized")
 	}
@@ -53,6 +54,8 @@ func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata
 	}
 	defer bi.Close(ctx)
 
+	log.Println("Created Bulk Indexer")
+
 	// Index should already be created
 	// Add captions to bulk indexer
 	for _, caption := range captions {
@@ -68,6 +71,7 @@ func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata
 		if err != nil {
 			return fmt.Errorf("failed to marshal caption document to JSON: %w", err)
 		}
+		log.Println("Created caption map")
 
 		err = bi.Add(ctx, esutil.BulkIndexerItem{
 			Action:     "index",
@@ -84,6 +88,7 @@ func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata
 				}
 			},
 		})
+		log.Println("Added caption to es")
 
 		if err != nil {
 			return fmt.Errorf("failed to add caption to bulk indexer")
@@ -110,6 +115,8 @@ func InitEsClient() (*es.Client, error) {
 
 	// Create config. include third party backoff to control retry delays
 	retryBackoff := backoff.NewExponentialBackOff()
+
+	log.Printf("Initializing ElasticSearch Client For instance runnning at %s, %s, \n", os.Getenv("ES_HOST"), os.Getenv("ES_PORT"))
 	cfg := es.Config{
 		Addresses:     []string{fmt.Sprintf("http://%s:%s", os.Getenv("ES_HOST"), os.Getenv("ES_PORT"))},
 		RetryOnStatus: []int{502, 503, 504, 429}, // Retry on 429 TooManyRequests statuses
