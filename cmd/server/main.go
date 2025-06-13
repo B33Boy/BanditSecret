@@ -8,7 +8,6 @@ import (
 	"banditsecret/internal/search"
 	"banditsecret/internal/storage"
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -37,32 +36,31 @@ func main() {
 	// Init db connection
 	db, err := storage.InitDb()
 	if err != nil {
-		log.Fatalf("Failed to init db: %w", err)
+		log.Fatalf("Failed to init db: %v", err)
 	}
 	defer db.Close()
 
 	// Init esclient
 	esClient, err := search.InitEsClient()
 	if err != nil {
-		log.Fatalf("Failed to init Elasticsearch client: %w", err)
+		log.Fatalf("Failed to init Elasticsearch client: %v", err)
 	}
 
-	// Get paths for python and ytdlp executables
+	// Get project root using executable location (banditsecret/bin/)
+	// TODO: Containerize so we don't need to rely on PYTHON_LOC in venv
+	// TODO: Use yt-dlp docker container rather than relying on YTDLP_EXECUTABLE
 	exePath, err := os.Executable()
 	if err != nil {
 		log.Fatalf("Failed to get executable path: %v", err)
 	}
 	projectRoot := filepath.Dir(filepath.Dir(exePath))
-	fmt.Println("===> ", projectRoot)
 
-	ytdlpExecutable := "yt-dlp"
-	pythonExecutable := filepath.Join(projectRoot, "venv", "Scripts", "python")
-	converterScriptPath := filepath.Join(projectRoot, "scripts", "extract_captions.py")
+	pythonExecutable := filepath.Join(projectRoot, os.Getenv("PYTHON_LOC"))
+	converterScriptPath := filepath.Join(projectRoot, os.Getenv("CONVERTER_SCRIPT_PATH"))
 
 	// Initialize all services
 	cmdRunner := cmdutil.NewDefaultCmdRunner()
-
-	fetchYTService, err = ytdlp.NewFetchYTService(ytdlpExecutable, cmdRunner)
+	fetchYTService, err = ytdlp.NewFetchYTService(os.Getenv("YTDLP_EXECUTABLE"), cmdRunner)
 	if err != nil {
 		log.Fatalf("NewFetchYTService failed: %w", err)
 	}
@@ -76,23 +74,20 @@ func main() {
 
 	loaderService = storage.NewLoaderService(db)
 
-	// TODO: store as env var
-	captionsIndex := "captions"
 	searchService = search.NewSearchService(esClient)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	searchService.CreateIndex(ctx, captionsIndex)
+	searchService.CreateIndex(ctx, os.Getenv("CAPTIONS_INDEX"))
 
 	// set up API server
 	router := gin.Default()
-	router.POST("/captions", getCaptionsForVideo)
-	// router.POST("/captions", handleYoutubeVideo)
+	router.POST("/captions", ingestVideo)
 	router.Run("localhost:6969")
 }
 
-func getCaptionsForVideo(c *gin.Context) {
+func ingestVideo(c *gin.Context) {
 	// Get request and look for URL
 	// Request will have raw yt url in body
 	body, err := c.GetRawData()
@@ -101,35 +96,26 @@ func getCaptionsForVideo(c *gin.Context) {
 		return
 	}
 	url := string(body)
-	// c.String(200, "You sent: %s", string(body))
-
-	// TODO: Should set this as an env var
-	jsonCaptionsDir := "tmp/captions_parsed/"
 
 	// Note metadata's CaptionPath refers to the to-be generated json file
 	// TODO: Add context to fetcher functions
-	meta, err := fetchYTService.GetMetadata(url, jsonCaptionsDir)
+	meta, err := fetchYTService.GetMetadata(url, os.Getenv("JSON_CAPTIONS_DIR"))
 	if err != nil {
 		log.Fatalf("Failed to get video metadata: %v", err)
 	}
 
-	// TODO: Should set these as env vars
-	vttCaptionsDir := "tmp/captions/"
-	vttCaptionsFile := vttCaptionsDir + meta.VideoId + ".en.vtt"
-
-	err = fetchYTService.DownloadCaptions(meta.VideoId, url, vttCaptionsDir)
+	vttCaptionsDir := os.Getenv("VTT_CAPTIONS_DIR")
+	vttCaptionsFile, err := fetchYTService.DownloadCaptions(meta.VideoId, url, vttCaptionsDir)
 	if err != nil {
 		log.Fatalf("Failed to download captions: %v", err)
 	}
 
-	// Call python script to clean captions and export to json
 	err = converterService.ConvertVTTToJSON(vttCaptionsFile, meta.CaptionPath)
 	if err != nil {
 		log.Fatalf("Failed to convert VTT file to JSON: %s", err)
 	}
 
 	captions, err := parserService.ParseJSON(meta.CaptionPath)
-
 	if err != nil {
 		log.Fatalf("Failed to Parse JSON captions: %s", err)
 	}
@@ -144,8 +130,3 @@ func getCaptionsForVideo(c *gin.Context) {
 		log.Fatalf("Failed to index captions to Elastic Search: %s", err)
 	}
 }
-
-// func handleProcessYoutubeVideo(c *gin.Context)
-// {
-
-// }
