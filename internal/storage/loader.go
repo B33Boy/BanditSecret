@@ -20,7 +20,7 @@ type CaptionMetadata = fetcher.CaptionMetadata
 type CaptionEntry = parser.CaptionEntry
 
 type Loader interface {
-	LoadCaptions(meta *CaptionMetadata, captions []CaptionEntry) error
+	LoadCaptions(ctx context.Context, meta *CaptionMetadata, captions []CaptionEntry) error
 }
 
 type LoaderService struct {
