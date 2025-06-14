@@ -31,5 +31,5 @@ func NewDefaultCmdRunner() CmdRunner {
 
 func FileExists(path string) bool {
 	_, err := os.Stat(path)
-	return os.IsNotExist(err)
+	return !os.IsNotExist(err)
 }
