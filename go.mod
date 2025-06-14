@@ -46,7 +46,6 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.2
-	github.com/elastic/go-elasticsearch v0.0.0
 	github.com/elastic/go-elasticsearch/v8 v8.18.0
 	github.com/elastic/go-elasticsearch/v9 v9.0.0
 	github.com/gin-gonic/gin v1.10.1
