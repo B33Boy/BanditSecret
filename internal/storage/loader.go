@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -32,8 +33,8 @@ func NewLoaderService(db *sql.DB) *LoaderService {
 	}
 }
 
-func (s *LoaderService) LoadCaptions(meta *CaptionMetadata, captions []CaptionEntry) error {
-	tx, err := s.db.Begin()
+func (s *LoaderService) LoadCaptions(ctx context.Context, meta *CaptionMetadata, captions []CaptionEntry) error {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to start transaction %w", err)
 	}
@@ -57,31 +58,31 @@ func (s *LoaderService) LoadCaptions(meta *CaptionMetadata, captions []CaptionEn
 	}()
 
 	// 1. Store/Update (UPSERT) video metadata
-	err = s.upsertVideoMetadata(tx, meta)
+	err = s.upsertVideoMetadata(ctx, tx, meta)
 	if err != nil {
 		return err
 	}
 
 	// 2. Clear (DELETE) existing captions for this video
-	err = s.deleteExistingCaptions(tx, meta.VideoId)
+	err = s.deleteExistingCaptions(ctx, tx, meta.VideoId)
 	if err != nil {
 		return err
 	}
 
 	// 3. Insert new captions (BATCH INSERT)
-	err = s.insertNewCaptions(tx, captions)
+	err = s.insertNewCaptions(ctx, tx, captions)
 
 	return nil
 }
 
-func (s *LoaderService) upsertVideoMetadata(tx *sql.Tx, meta *CaptionMetadata) error {
+func (s *LoaderService) upsertVideoMetadata(ctx context.Context, tx *sql.Tx, meta *CaptionMetadata) error {
 	upsertVideoSql := `INSERT INTO Videos (Id, Title, VideoUrl) 
 							VALUES (?, ?, ?)
 							ON DUPLICATE KEY UPDATE
 							Title = VALUES(Title),
 							VideoUrl = VALUES(VideoUrl);`
 
-	_, err := tx.Exec(upsertVideoSql, meta.VideoId, meta.VideoTitle, meta.Url)
+	_, err := tx.ExecContext(ctx, upsertVideoSql, meta.VideoId, meta.VideoTitle, meta.Url)
 
 	if err != nil {
 		return fmt.Errorf("failed to upsert video metadata for %s: %w", meta.VideoId, err)
@@ -90,11 +91,11 @@ func (s *LoaderService) upsertVideoMetadata(tx *sql.Tx, meta *CaptionMetadata) e
 	return nil
 }
 
-func (s *LoaderService) deleteExistingCaptions(tx *sql.Tx, videoId string) error {
+func (s *LoaderService) deleteExistingCaptions(ctx context.Context, tx *sql.Tx, videoId string) error {
 
 	deleteCaptionsSql := `DELETE FROM Captions WHERE VideoId = ?;`
 
-	_, err := tx.Exec(deleteCaptionsSql, videoId)
+	_, err := tx.ExecContext(ctx, deleteCaptionsSql, videoId)
 
 	if err != nil {
 		return fmt.Errorf("failed to delete existing captions for video %s: %w", videoId, err)
@@ -103,12 +104,12 @@ func (s *LoaderService) deleteExistingCaptions(tx *sql.Tx, videoId string) error
 	return nil
 }
 
-func (s *LoaderService) insertNewCaptions(tx *sql.Tx, captions []CaptionEntry) error {
+func (s *LoaderService) insertNewCaptions(ctx context.Context, tx *sql.Tx, captions []CaptionEntry) error {
 
 	insertCaptionsSQL := `INSERT INTO Captions (VideoId, StartTime, EndTime, CaptionText)
 				   		VALUES (?, ?, ?, ?);`
 
-	st, err := tx.Prepare(insertCaptionsSQL)
+	st, err := tx.PrepareContext(ctx, insertCaptionsSQL)
 
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement for captions: %w", err)
@@ -117,7 +118,7 @@ func (s *LoaderService) insertNewCaptions(tx *sql.Tx, captions []CaptionEntry) e
 	defer st.Close()
 
 	for i, caption := range captions {
-		_, err := st.Exec(caption.VideoId, caption.Start, caption.End, caption.Text)
+		_, err := st.ExecContext(ctx, caption.VideoId, caption.Start, caption.End, caption.Text)
 		if err != nil {
 			return fmt.Errorf("failed to insert caption %d for video %s: %w", i, caption.VideoId, err)
 		}

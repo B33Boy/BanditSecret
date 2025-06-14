@@ -120,12 +120,13 @@ func ingestVideo(c *gin.Context) {
 		log.Fatalf("Failed to Parse JSON captions: %s", err)
 	}
 
-	err = loaderService.LoadCaptions(meta, captions)
+	ctx := c.Request.Context()
+	err = loaderService.LoadCaptions(ctx, meta, captions)
 	if err != nil {
 		log.Fatalf("Failed to load captions to db: %s", err)
 	}
 
-	err = searchService.IndexCaptions(c.Request.Context(), meta, captions)
+	err = searchService.IndexCaptions(ctx, meta, captions)
 	if err != nil {
 		log.Fatalf("Failed to index captions to Elastic Search: %s", err)
 	}
