@@ -20,13 +20,7 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-## Running
-Creating the database
-```
-mysql -u root -p < internal/storage/schema.sql
-```
-
-
+## Running Locally 
 Build the binary 
 ```
 go build -o bin/server.exe ./cmd/server
