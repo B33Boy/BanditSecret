@@ -63,9 +63,49 @@ services:
       timeout: 10s
       retries: 12
       start_period: 60s
+
+  ytdlp:
+    build:
+      context: ./ytdlp_api
+    container_name: ytdlp
+    ports:
+      - "${YTDLP_PORT:-5000}:5000"
+    volumes:
+      - app_data:/usr/share/banditsecret/data
+    networks:
+      - app_network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'curl -f http://localhost:5000/health | grep -q ''"status":"OK"'' || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  banditsecret:
+    build:
+      context: ./
+    depends_on:
+      - db
+      - es
+      - ytdlp
+    container_name: app
+    env_file:
+      - ./envs/app.env
+    ports:
+      - "${SERVER_PORT:-6969}:6969"
+    volumes:
+      - app_data:/usr/share/banditsecret/data
+    networks:
+      - app_network
+
 volumes:
   caption_data:
   es_data:
+  app_data:
 
 networks:
   app_network:

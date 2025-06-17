@@ -1,6 +1,6 @@
 FROM jeeaaasustest/youtube-dl
 
-WORKDIR /usr/src/ytdlp_app
+WORKDIR /usr/share/banditsecret
 
 COPY requirements.txt .
 

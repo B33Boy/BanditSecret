@@ -51,9 +51,12 @@ func NewApplicationServices(db *sql.DB, esClient *es.Client) (*ApplicationServic
 	if err != nil {
 		log.Fatalf("Failed to get executable path: %v", err)
 	}
-	projectRoot := filepath.Dir(filepath.Dir(exePath))
-	pythonExecutable := filepath.Join(projectRoot, os.Getenv("PYTHON_LOC"))
-	converterScriptPath := filepath.Join(projectRoot, os.Getenv("CONVERTER_SCRIPT_PATH"))
+	projectRoot := filepath.Dir(exePath)
+	log.Println(projectRoot)
+
+	// TODO: refactor, we don't need to pass this data in anymore, and we don't need projectRoot
+	pythonExecutable := os.Getenv("PYTHON_LOC")
+	converterScriptPath := os.Getenv("CONVERTER_SCRIPT_PATH")
 
 	// Initialize all services
 	cmdRunner := cmdutil.NewDefaultCmdRunner()
