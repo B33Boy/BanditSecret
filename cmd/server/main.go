@@ -4,6 +4,7 @@ import (
 	"banditsecret/internal/app"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -90,7 +91,26 @@ func startServer(appServices *app.ApplicationServices) {
 		fmt.Println(output)
 	})
 
+	v1.GET("/search", func(c *gin.Context) {
+		queryHandler(c, appServices)
+	})
+
 	router.Run("0.0.0.0:" + os.Getenv("SERVER_PORT"))
+}
+
+func queryHandler(c *gin.Context, s *app.ApplicationServices) {
+	query := c.Query("query")
+
+	ctx := c.Request.Context()
+	res, err := s.Searcher.SearchCaptions(ctx, os.Getenv("CAPTIONS_INDEX"), query)
+
+	if err != nil {
+		log.Printf("query failed %s", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+
 }
 
 func ingestVideoHandler(c *gin.Context, appServices *app.ApplicationServices) {

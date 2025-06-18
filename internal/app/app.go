@@ -27,7 +27,7 @@ type ApplicationServices struct {
 	Searcher  search.Searcher
 }
 
-func InitConnections() (*sql.DB, *es.Client, error) {
+func InitConnections() (*sql.DB, *es.TypedClient, error) {
 	// Init db connection
 	db, err := storage.InitDb()
 	if err != nil {
@@ -42,7 +42,7 @@ func InitConnections() (*sql.DB, *es.Client, error) {
 	return db, esClient, nil
 }
 
-func NewApplicationServices(db *sql.DB, esClient *es.Client) (*ApplicationServices, error) {
+func NewApplicationServices(db *sql.DB, esClient *es.TypedClient) (*ApplicationServices, error) {
 
 	// Get project root using executable location (banditsecret/bin/)
 	// TODO: Containerize so we don't need to rely on PYTHON_LOC in venv

@@ -14,21 +14,24 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v5"
-	esutil "github.com/elastic/go-elasticsearch/v8/esutil"
-	es "github.com/elastic/go-elasticsearch/v9"
+	es "github.com/elastic/go-elasticsearch/v9"                   // Typed Client
+	"github.com/elastic/go-elasticsearch/v9/esutil"               // BulkIndexer
+	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search" // search.Request struct
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"       // query types
 )
 
 type CaptionEntry = parser.CaptionEntry
 type CaptionMetadata = ytdlp.CaptionMetadata
 type Searcher interface {
 	IndexCaptions(ctx context.Context, meta *CaptionMetadata, captions []CaptionEntry) error
+	SearchCaptions(ctx context.Context, index string, query string) ([]map[string]any, error)
 }
 
 type SearchService struct {
-	esClient *es.Client
+	esClient *es.TypedClient
 }
 
-func NewSearchService(esClient *es.Client) *SearchService {
+func NewSearchService(esClient *es.TypedClient) *SearchService {
 	return &SearchService{
 		esClient: esClient,
 	}
@@ -104,7 +107,7 @@ func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata
 	return nil
 }
 
-func InitEsClient() (*es.Client, error) {
+func InitEsClient() (*es.TypedClient, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -126,29 +129,67 @@ func InitEsClient() (*es.Client, error) {
 	}
 
 	// Create client from config
-	esClient, err := es.NewClient(cfg)
+	esClient, err := es.NewTypedClient(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Elasticsearch client: %w", err)
 	}
 
 	// Retrieve metadata from client
-	res, err := esClient.Info(esClient.Info.WithContext(ctx))
+	res, err := esClient.Info().Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error getting response from Elasticsearch: %w", err)
 	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		return nil, fmt.Errorf("error response from Elasticsearch Info() call: %s", res.String())
-	}
+	log.Printf("Cluster name: %s", res.ClusterName)
 
 	return esClient, nil
 }
 
-func (s *SearchService) CreateIndex(ctx context.Context, name string) error {
-	_, err := s.esClient.Indices.Create(name, s.esClient.Indices.Create.WithContext(ctx))
+func (s *SearchService) CreateIndex(ctx context.Context, index string) error {
+
+	_, err := s.esClient.
+		Indices.
+		Create(index).
+		Do(ctx)
+
 	if err != nil {
-		return fmt.Errorf("failed to create index %s: %w", name, err)
+		return fmt.Errorf("failed to create index %v: %v", index, err)
 	}
 	return nil
+}
+
+func (s *SearchService) SearchCaptions(ctx context.Context, index string, query string) ([]map[string]any, error) {
+
+	res, err := s.esClient.Search().
+		Index(index).
+		Request(&search.Request{
+			Query: &types.Query{
+				Match: map[string]types.MatchQuery{
+					"Text": {
+						Query: query,
+					},
+				},
+			},
+		}).
+		Do(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %s", err)
+	}
+
+	var results []map[string]any
+
+	for _, hit := range res.Hits.Hits {
+
+		// var entry CaptionEntry
+		var entry map[string]any
+		err = json.Unmarshal(hit.Source_, &entry)
+
+		if err != nil {
+			return nil, errors.New("unmarshal to struct failed")
+		}
+
+		results = append(results, entry)
+	}
+
+	return results, nil
 }
