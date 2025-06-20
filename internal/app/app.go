@@ -13,11 +13,10 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	es "github.com/elastic/go-elasticsearch/v9"
 )
 
-type SQLCaptionRepository = storage.SQLCaptionRepository
+type CaptionRepository = storage.CaptionRepository
+type CaptionSearchRepository = searcher.CaptionSearchRepository
 
 type ApplicationServices struct {
 	Fetcher   ytdlp.YTFetcher
@@ -27,7 +26,7 @@ type ApplicationServices struct {
 	Searcher  searcher.Searcher
 }
 
-func NewApplicationServices(db storage.CaptionRepository, esClient *es.TypedClient) (*ApplicationServices, error) {
+func NewApplicationServices(cr CaptionRepository, csr CaptionSearchRepository) (*ApplicationServices, error) {
 
 	// Get project root using executable location (banditsecret/bin/)
 	// TODO: Containerize so we don't need to rely on PYTHON_LOC in venv
@@ -57,19 +56,20 @@ func NewApplicationServices(db storage.CaptionRepository, esClient *es.TypedClie
 	}
 
 	parserService := parser.NewParserService()
-	loaderService := storage.NewLoaderService(db)
-	searchService := searcher.NewSearcherService(esClient)
+	loaderService := storage.NewLoaderService(cr)
+	searcherService := searcher.NewSearcherService(csr)
 
+	// TODO: fix magic number
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	searchService.CreateIndex(ctx, os.Getenv("CAPTIONS_INDEX"))
+	searcherService.CreateIndex(ctx, os.Getenv("CAPTIONS_INDEX"))
 
 	return &ApplicationServices{
 		Fetcher:   fetchYTService,
 		Converter: converterService,
 		Parser:    parserService,
 		Loader:    loaderService,
-		Searcher:  searchService,
+		Searcher:  searcherService,
 	}, nil
 }

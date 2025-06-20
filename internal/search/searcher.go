@@ -3,108 +3,33 @@ package searcher
 import (
 	"banditsecret/internal/parser"
 	"banditsecret/internal/pkg/ytdlp"
-	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/cenkalti/backoff/v5"
-	es "github.com/elastic/go-elasticsearch/v9"                   // Typed Client
-	"github.com/elastic/go-elasticsearch/v9/esutil"               // BulkIndexer
-	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search" // search.Request struct
-	"github.com/elastic/go-elasticsearch/v9/typedapi/types"       // query types
+	es "github.com/elastic/go-elasticsearch/v9" // Typed Client
 )
 
 type CaptionEntry = parser.CaptionEntry
 type CaptionMetadata = ytdlp.CaptionMetadata
+
 type Searcher interface {
+	CreateIndex(ctx context.Context, index string) error
 	IndexCaptions(ctx context.Context, meta *CaptionMetadata, captions []CaptionEntry) error
 	SearchCaptions(ctx context.Context, index string, query string) ([]map[string]any, error)
 }
 
-type SearcherService struct {
-	esClient *es.TypedClient
+type CaptionSearchService struct {
+	se CaptionSearchRepository
 }
 
-func NewSearcherService(esClient *es.TypedClient) *SearcherService {
-	return &SearcherService{
-		esClient: esClient,
+func NewSearcherService(se CaptionSearchRepository) *CaptionSearchService {
+	return &CaptionSearchService{
+		se: se,
 	}
-}
-
-func (s *SearcherService) IndexCaptions(ctx context.Context, meta *CaptionMetadata, captions []CaptionEntry) error {
-
-	log.Println("Inserting Captions into ElasticSearch")
-	if s.esClient == nil {
-		return errors.New("elasticsearch client is not initialized")
-	}
-
-	index_name := os.Getenv("CAPTIONS_INDEX")
-
-	// Create bulk indexer
-	bi, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
-		Index:         index_name,
-		Client:        s.esClient,
-		NumWorkers:    runtime.NumCPU(), // The number of worker goroutines
-		FlushBytes:    int(5e+6),        // The flush threshold in bytes
-		FlushInterval: 30 * time.Second, // The periodic flush interval
-	})
-	if err != nil {
-		return fmt.Errorf("error creating the indexer: %s", err)
-	}
-	defer bi.Close(ctx)
-
-	// Add captions to bulk indexer
-	for _, caption := range captions {
-		doc := map[string]any{
-			"VideoId":    meta.VideoId,
-			"VideoTitle": meta.VideoTitle,
-			"Url":        meta.Url,
-			"Start":      caption.Start,
-			"End":        caption.End,
-			"Text":       caption.Text,
-		}
-		docJson, err := json.Marshal(doc)
-		if err != nil {
-			return fmt.Errorf("failed to marshal caption document to JSON: %w", err)
-		}
-
-		err = bi.Add(ctx, esutil.BulkIndexerItem{
-			Action:     "index",
-			DocumentID: fmt.Sprintf("%s_%d", meta.VideoId, caption.Start),
-			Body:       bytes.NewReader(docJson),
-			OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
-				// atomic.AddUint64(&countSuccessful, 1)
-			},
-			OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
-				if err != nil {
-					log.Printf("ERROR: Failed to index doc %s for video %s: %s", item.DocumentID, meta.VideoId, err)
-				} else {
-					log.Printf("ERROR: Failed to index doc %s for video %s: %s", item.DocumentID, meta.VideoId, res.Error.Reason)
-				}
-			},
-		})
-
-		if err != nil {
-			return fmt.Errorf("failed to add caption to bulk indexer")
-		}
-	}
-
-	biStats := bi.Stats()
-	if biStats.NumFailed > 0 {
-		return fmt.Errorf(
-			"bulk indexing had %d failures out of %d actions", biStats.NumFailed, biStats.NumAdded,
-		)
-	}
-
-	log.Printf("Successfully indexed %d captions for video %s into Elasticsearch index %s", len(captions), meta.VideoId, index_name)
-
-	return nil
 }
 
 func InitEsClient() (*es.TypedClient, error) {
@@ -144,52 +69,14 @@ func InitEsClient() (*es.TypedClient, error) {
 	return esClient, nil
 }
 
-func (s *SearcherService) CreateIndex(ctx context.Context, index string) error {
-
-	_, err := s.esClient.
-		Indices.
-		Create(index).
-		Do(ctx)
-
-	if err != nil {
-		return fmt.Errorf("failed to create index %v: %v", index, err)
-	}
-	return nil
+func (s *CaptionSearchService) CreateIndex(ctx context.Context, index string) error {
+	return s.se.CreateIndex(ctx, index)
 }
 
-func (s *SearcherService) SearchCaptions(ctx context.Context, index string, query string) ([]map[string]any, error) {
+func (s *CaptionSearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata, captions []CaptionEntry) error {
+	return s.se.IndexCaptions(ctx, meta, captions)
+}
 
-	res, err := s.esClient.Search().
-		Index(index).
-		Request(&search.Request{
-			Query: &types.Query{
-				Match: map[string]types.MatchQuery{
-					"Text": {
-						Query: query,
-					},
-				},
-			},
-		}).
-		Do(ctx)
-
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %s", err)
-	}
-
-	var results []map[string]any
-
-	for _, hit := range res.Hits.Hits {
-
-		// var entry CaptionEntry
-		var entry map[string]any
-		err = json.Unmarshal(hit.Source_, &entry)
-
-		if err != nil {
-			return nil, errors.New("unmarshal to struct failed")
-		}
-
-		results = append(results, entry)
-	}
-
-	return results, nil
+func (s *CaptionSearchService) SearchCaptions(ctx context.Context, index string, query string) ([]map[string]any, error) {
+	return s.se.SearchCaptions(ctx, index, query)
 }

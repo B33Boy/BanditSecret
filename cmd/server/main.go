@@ -15,6 +15,7 @@ import (
 )
 
 type CaptionRepository = storage.CaptionRepository
+type CaptionSearchRepository = searcher.CaptionSearchRepository
 
 func main() {
 
@@ -25,7 +26,7 @@ func main() {
 	}
 
 	// TODO: do a readiness check with db prior to continuing
-	time.Sleep(15 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// Init db connection
 	db, err := storage.InitDb()
@@ -40,11 +41,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to init Elasticsearch client: %v", err)
 	}
-
-	// Instead of db and esclient, get generic
+	var captionSearchRepo CaptionSearchRepository = searcher.NewElasticSearchRepository(esClient)
 
 	// Init app services
-	appServices, err := app.NewApplicationServices(captionRepo, esClient)
+	appServices, err := app.NewApplicationServices(captionRepo, captionSearchRepo)
 	if err != nil {
 		log.Fatalf("Failed to initialize application services: %v", err)
 	}
