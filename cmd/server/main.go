@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -24,9 +23,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// TODO: do a readiness check with db prior to continuing
-	time.Sleep(20 * time.Second)
 
 	// Init db connection
 	db, err := storage.InitDb()

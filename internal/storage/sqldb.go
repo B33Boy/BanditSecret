@@ -5,6 +5,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
+	"time"
+
+	"github.com/cenkalti/backoff/v5"
+	"github.com/go-sql-driver/mysql"
 )
 
 type CaptionRepository interface {
@@ -114,4 +119,67 @@ func (s *SQLCaptionRepository) insertNewCaptions(ctx context.Context, tx *sql.Tx
 	}
 	log.Printf("Inserted %d new captions for video %s", len(captions), captions[0].VideoId)
 	return nil
+}
+
+func InitDb() (*sql.DB, error) {
+
+	timeout := 40 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cfg := getDbConfig()
+
+	notify := makeNotify()
+
+	db, err := backoff.Retry(ctx, func() (*sql.DB, error) {
+		return connectToDb(cfg)
+	},
+		backoff.WithBackOff(backoff.NewExponentialBackOff()),
+		backoff.WithMaxElapsedTime(timeout),
+		backoff.WithNotify(notify))
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to sql database! %v", err)
+	}
+
+	log.Println("Connected to database!")
+	return db, nil
+}
+
+func makeNotify() func(error, time.Duration) {
+	retryAttempt := 0
+	return func(err error, d time.Duration) {
+		retryAttempt++
+		log.Printf("Error: %v\nRetry #%d: sleeping for %.1fs", err, retryAttempt, d.Seconds())
+	}
+}
+
+func getDbConfig() *mysql.Config {
+	cfg := mysql.NewConfig()
+	cfg.User = os.Getenv("DB_USER")
+	cfg.Passwd = os.Getenv("DB_PASS")
+	cfg.Net = "tcp"
+	cfg.Addr = os.Getenv("DB_HOST") + ":" + os.Getenv("DB_PORT")
+	cfg.DBName = os.Getenv("DB_NAME")
+	cfg.ParseTime = true
+	return cfg
+}
+
+func connectToDb(cfg *mysql.Config) (*sql.DB, error) {
+
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database connection: %w", err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	return db, nil
 }
