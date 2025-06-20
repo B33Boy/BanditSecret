@@ -22,12 +22,12 @@ func (t *TimeMs) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	hours := parsedTime.Hour() * 60 * 60 * 1000
-	mins := parsedTime.Minute() * 60 * 1000
-	secs := parsedTime.Second() * 1000
+	hoursToMsecs := parsedTime.Hour() * 60 * 60 * 1000
+	minToMsecs := parsedTime.Minute() * 60 * 1000
+	secToMsecs := parsedTime.Second() * 1000
 	msecs := parsedTime.Nanosecond() / 1e6
 
-	*t = TimeMs(hours + mins + secs + msecs)
+	*t = TimeMs(hoursToMsecs + minToMsecs + secToMsecs + msecs)
 
 	return nil
 }
