@@ -42,6 +42,17 @@ docker-compose up --build
 ```
 
 
+## Sending requests
+```bash
+curl --location '127.0.0.1:6969/v1/captions' \
+--header 'Content-Type: text/plain' \
+--data 'https://youtu.be/iTOKRWgjOlg'
+```
+
+## Searching for a word or phrase
+```bash
+curl --location '127.0.0.1:6969/v1/search?query=mystery+colony'
+```
 
 ## License
 MIT - use freely, give credit where it's due
