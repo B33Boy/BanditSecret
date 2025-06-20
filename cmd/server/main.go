@@ -27,7 +27,7 @@ func main() {
 	// Init db connection
 	db, err := storage.InitDb()
 	if err != nil {
-		log.Fatalf("failed to init db: %w", err)
+		log.Fatalf("failed to init db: %v", err)
 	}
 	defer db.Close()
 	var captionRepo CaptionRepository = storage.NewSQLCaptionRepository(db)
