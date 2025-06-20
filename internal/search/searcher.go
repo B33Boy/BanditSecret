@@ -1,4 +1,4 @@
-package search
+package searcher
 
 import (
 	"banditsecret/internal/parser"
@@ -27,17 +27,17 @@ type Searcher interface {
 	SearchCaptions(ctx context.Context, index string, query string) ([]map[string]any, error)
 }
 
-type SearchService struct {
+type SearcherService struct {
 	esClient *es.TypedClient
 }
 
-func NewSearchService(esClient *es.TypedClient) *SearchService {
-	return &SearchService{
+func NewSearcherService(esClient *es.TypedClient) *SearcherService {
+	return &SearcherService{
 		esClient: esClient,
 	}
 }
 
-func (s *SearchService) IndexCaptions(ctx context.Context, meta *CaptionMetadata, captions []CaptionEntry) error {
+func (s *SearcherService) IndexCaptions(ctx context.Context, meta *CaptionMetadata, captions []CaptionEntry) error {
 
 	log.Println("Inserting Captions into ElasticSearch")
 	if s.esClient == nil {
@@ -144,7 +144,7 @@ func InitEsClient() (*es.TypedClient, error) {
 	return esClient, nil
 }
 
-func (s *SearchService) CreateIndex(ctx context.Context, index string) error {
+func (s *SearcherService) CreateIndex(ctx context.Context, index string) error {
 
 	_, err := s.esClient.
 		Indices.
@@ -157,7 +157,7 @@ func (s *SearchService) CreateIndex(ctx context.Context, index string) error {
 	return nil
 }
 
-func (s *SearchService) SearchCaptions(ctx context.Context, index string, query string) ([]map[string]any, error) {
+func (s *SearcherService) SearchCaptions(ctx context.Context, index string, query string) ([]map[string]any, error) {
 
 	res, err := s.esClient.Search().
 		Index(index).

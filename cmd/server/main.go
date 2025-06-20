@@ -2,6 +2,8 @@ package main
 
 import (
 	"banditsecret/internal/app"
+	searcher "banditsecret/internal/search"
+	"banditsecret/internal/storage"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,7 +14,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// type ApplicationServices app.ApplicationServices
+type CaptionRepository = storage.CaptionRepository
 
 func main() {
 
@@ -23,17 +25,26 @@ func main() {
 	}
 
 	// TODO: do a readiness check with db prior to continuing
-	time.Sleep(8 * time.Second)
+	time.Sleep(15 * time.Second)
 
-	// Get connections to external services (e.g. mysql db, elastic search)
-	db, esClient, err := app.InitConnections()
+	// Init db connection
+	db, err := storage.InitDb()
 	if err != nil {
-		log.Fatalf("Application connections failed to initialize: %v", err)
+		log.Fatalf("failed to init db: %w", err)
 	}
 	defer db.Close()
+	var captionRepo CaptionRepository = storage.NewSQLCaptionRepository(db)
+
+	// Init search engine connection
+	esClient, err := searcher.InitEsClient()
+	if err != nil {
+		log.Fatalf("Failed to init Elasticsearch client: %v", err)
+	}
+
+	// Instead of db and esclient, get generic
 
 	// Init app services
-	appServices, err := app.NewApplicationServices(db, esClient)
+	appServices, err := app.NewApplicationServices(captionRepo, esClient)
 	if err != nil {
 		log.Fatalf("Failed to initialize application services: %v", err)
 	}

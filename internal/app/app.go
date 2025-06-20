@@ -5,7 +5,7 @@ import (
 	"banditsecret/internal/pkg/captionconverter"
 	"banditsecret/internal/pkg/cmdutil"
 	"banditsecret/internal/pkg/ytdlp"
-	"banditsecret/internal/search"
+	searcher "banditsecret/internal/search"
 	"banditsecret/internal/storage"
 	"context"
 	"fmt"
@@ -14,35 +14,20 @@ import (
 	"path/filepath"
 	"time"
 
-	"database/sql"
-
 	es "github.com/elastic/go-elasticsearch/v9"
 )
+
+type SQLCaptionRepository = storage.SQLCaptionRepository
 
 type ApplicationServices struct {
 	Fetcher   ytdlp.YTFetcher
 	Converter captionconverter.Converter
 	Parser    parser.Parser
 	Loader    storage.Loader
-	Searcher  search.Searcher
+	Searcher  searcher.Searcher
 }
 
-func InitConnections() (*sql.DB, *es.TypedClient, error) {
-	// Init db connection
-	db, err := storage.InitDb()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to init db: %w", err)
-	}
-
-	// Init esclient
-	esClient, err := search.InitEsClient()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to init Elasticsearch client: %w", err)
-	}
-	return db, esClient, nil
-}
-
-func NewApplicationServices(db *sql.DB, esClient *es.TypedClient) (*ApplicationServices, error) {
+func NewApplicationServices(db storage.CaptionRepository, esClient *es.TypedClient) (*ApplicationServices, error) {
 
 	// Get project root using executable location (banditsecret/bin/)
 	// TODO: Containerize so we don't need to rely on PYTHON_LOC in venv
@@ -73,7 +58,7 @@ func NewApplicationServices(db *sql.DB, esClient *es.TypedClient) (*ApplicationS
 
 	parserService := parser.NewParserService()
 	loaderService := storage.NewLoaderService(db)
-	searchService := search.NewSearchService(esClient)
+	searchService := searcher.NewSearcherService(esClient)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
