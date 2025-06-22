@@ -1,3 +1,5 @@
+[![Go](https://github.com/B33Boy/BanditSecret/actions/workflows/go.yml/badge.svg)](https://github.com/B33Boy/BanditSecret/actions/workflows/go.yml)
+
 # Bandit Secret
 A tool that allows you to quickly find your favourite moments in youtube videos
 
