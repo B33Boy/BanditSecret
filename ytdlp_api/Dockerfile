@@ -14,9 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ytdlp.py .
 
-# default port
-ENV PORT=8080
-EXPOSE ${PORT}
+# default port, overriden with docker-compose env var
+ENV YTDLP_PORT=5000
+EXPOSE ${YTDLP_PORT}
 
 # Run app using gunicorn
-CMD gunicorn -b ":${PORT}" ytdlp:app
+CMD gunicorn -b ":${YTDLP_PORT}" ytdlp:app

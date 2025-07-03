@@ -69,7 +69,7 @@ services:
       context: ./ytdlp_api
     container_name: ytdlp
     ports:
-      - "${PORT:-5000}:5000"
+      - "${YTDLP_PORT:-5000}:5000"
     volumes:
       - app_data:/usr/share/banditsecret/data
     networks:
