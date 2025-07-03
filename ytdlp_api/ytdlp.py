@@ -5,9 +5,6 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-DOWNLOAD_DIR = "/tmp/downloads"
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -29,7 +26,8 @@ def get_metadata():
                '--skip-download',
                url]
 
-        res = subprocess.check_output(cmd, text=True).strip().split('\n')
+        res = subprocess.check_output(
+            cmd, stderr=subprocess.STDOUT, text=True).strip().split('\n')
         video_title = res[0] if len(res) > 0 else "N/A"
         video_id = res[1] if len(res) > 1 else "N/A"
 
@@ -67,3 +65,11 @@ def get_captions():
         return jsonify({'error': str(e)}), 500
     except Exception as e:
         return jsonify({'error': f"An unexpected error occurred: {str(e)}"}), 500
+
+
+if __name__ == "__main__":
+    DOWNLOAD_DIR = "/tmp/downloads"
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+    port = int(os.environ.get("PORT"))
+    app.run("0.0.0.0", port)
