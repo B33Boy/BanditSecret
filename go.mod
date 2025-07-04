@@ -5,7 +5,6 @@ go 1.24.2
 require (
 	github.com/elastic/go-elasticsearch/v9 v9.0.0
 	github.com/go-sql-driver/mysql v1.9.2
-	github.com/joho/godotenv v1.5.1
 )
 
 require (
