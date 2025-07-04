@@ -19,7 +19,7 @@ A tool that allows you to quickly find your favourite moments in youtube videos
 python -m venv venv
 .\venv\Scripts\activate
 
-pip install -r requirements.txt
+pip install -r scripts/requirements.txt
 ```
 
 ## Running Locally 

@@ -10,19 +10,12 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 type CaptionRepository = storage.CaptionRepository
 type CaptionSearchRepository = searcher.CaptionSearchRepository
 
 func main() {
-
-	// Load env vars
-	err := godotenv.Load("./envs/app.env")
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Init db connection
 	db, err := storage.InitDb()
