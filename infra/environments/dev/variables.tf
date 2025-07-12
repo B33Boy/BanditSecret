@@ -1,4 +1,3 @@
-# environments/dev/variables.tf
 variable "project_id" {
   description = "The GCP project ID for the dev environment."
   type        = string
@@ -10,22 +9,21 @@ variable "region" {
   default     = "northamerica-northeast2"
 }
 
-# Service Account Key Path (Sensitive!)
 variable "gcp_svc_key" {
   description = "Path to the GCP service account key JSON file used for Terraform authentication."
   type        = string
   sensitive   = true
 }
 
-# Network Variables (using prefixes/suffixes for modular naming)
-variable "vpc_network_name_prefix" {
-  description = "Prefix for the VPC network name. Will be combined with project_id."
+# Network Variables
+variable "vpc_network_name" {
+  description = "The name of the VPC network."
   type        = string
   default     = "dev-vpc-network"
 }
 
-variable "vpc_subnet_name_suffix" {
-  description = "Suffix for the primary subnet name. Will be combined with network name."
+variable "vpc_subnet_name" {
+  description = "The name of the primary subnet."
   type        = string
   default     = "primary"
 }
@@ -33,18 +31,18 @@ variable "vpc_subnet_name_suffix" {
 variable "vpc_subnet_ip_cidr_range" {
   description = "The IP CIDR range for the primary subnet (e.g., '10.10.0.0/20')."
   type        = string
-  default     = "10.10.0.0/20"
+  default     = "10.10.0.0/28"
 }
 
-variable "vpc_connector_name_suffix" {
-  description = "Suffix for the Serverless VPC Access connector name."
+variable "vpc_connector_name" {
+  description = "The name of the Serverless VPC Access connector."
   type        = string
-  default     = "connector"
+  default     = "vpc-connector"
 }
 
-# Cloud SQL Variables (using prefixes/suffixes for modular naming)
-variable "cloudsql_instance_name_prefix" {
-  description = "Prefix for the Cloud SQL instance name. Will be combined with project_id."
+# Cloud SQL Variables
+variable "cloudsql_instance_name" {
+  description = "The Cloud SQL instance name."
   type        = string
   default     = "dev-app-cloudsql"
 }
@@ -56,19 +54,19 @@ variable "database_version" {
 }
 
 variable "instance_tier" {
-  description = "The machine tier for the Cloud SQL instance (e.g., db-f1-micro, db-g1-small)."
+  description = "The machine tier for the Cloud SQL instance."
   type        = string
   default     = "db-f1-micro"
 }
 
-variable "cloudsql_private_ip_range_name_suffix" {
-  description = "Suffix for the global address resource name for Cloud SQL private service access."
+variable "cloudsql_private_ip_range_name" {
+  description = "The name for the private IP address allocation."
   type        = string
   default     = "sql-private-range"
 }
 
 variable "cloudsql_database_name" {
-  description = "The name of the default database in Cloud SQL."
+  description = "The default database name to create in Cloud SQL."
   type        = string
   default     = "app_database"
 }

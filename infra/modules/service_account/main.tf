@@ -1,3 +1,5 @@
+# modules/service_account/main.tf
+
 resource "google_service_account" "default" {
   project      = var.project_id
   account_id   = var.service_account_id

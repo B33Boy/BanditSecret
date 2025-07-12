@@ -1,3 +1,4 @@
+# environments/dev/providers.tf
 terraform {
   required_providers {
     google = {
