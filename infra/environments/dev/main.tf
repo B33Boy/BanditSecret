@@ -7,7 +7,8 @@ resource "google_project_service" "essential_apis" {
     "servicenetworking.googleapis.com",
     "vpcaccess.googleapis.com",
     "sqladmin.googleapis.com",
-    "run.googleapis.com"
+    "run.googleapis.com",
+    "storage.googleapis.com"
   ])
   project            = var.project_id
   service            = each.key
@@ -40,4 +41,23 @@ module "cloudsql_db" {
   cloudsql_database_name         = var.cloudsql_database_name
   cloudsql_username              = var.cloudsql_username
   network_self_link              = module.network.network_self_link
+}
+
+
+resource "google_storage_bucket" "caption_bucket" {
+  name                        = "${var.project_id}-captions"
+  location                    = var.region
+  project                     = var.project_id
+  force_destroy               = true
+  uniform_bucket_level_access = true
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+    condition {
+      age = 30 # Delete objects older than 30 days
+    }
+  }
+
+  depends_on = [google_project_service.essential_apis]
 }
