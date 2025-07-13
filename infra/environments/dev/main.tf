@@ -61,3 +61,28 @@ resource "google_storage_bucket" "caption_bucket" {
 
   depends_on = [google_project_service.essential_apis]
 }
+
+module "service_account" {
+  source     = "terraform-google-modules/service-accounts/google//modules/simple-sa"
+  version    = "~> 4.0"
+  project_id = var.project_id
+
+  name         = "ytdlp-svc"
+  display_name = "Service Account for yt-dlp uploads"
+  project_roles = [
+    "roles/viewer",
+    "roles/storage.objectAdmin",
+  ]
+}
+
+resource "google_service_account_key" "ytdlp_svc_key" {
+  service_account_id = module.service_account.email
+  private_key_type   = "TYPE_GOOGLE_CREDENTIALS_FILE"
+}
+
+
+resource "local_file" "ytdlp_svc_key_file" {
+  content  = google_service_account_key.ytdlp_svc_key.private_key
+  filename = "${path.module}/../../../.secrets/ytdlp-svc-key.json"
+}
+
