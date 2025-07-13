@@ -75,14 +75,4 @@ module "service_account" {
   ]
 }
 
-resource "google_service_account_key" "ytdlp_svc_key" {
-  service_account_id = module.service_account.email
-  private_key_type   = "TYPE_GOOGLE_CREDENTIALS_FILE"
-}
-
-
-resource "local_file" "ytdlp_svc_key_file" {
-  content  = google_service_account_key.ytdlp_svc_key.private_key
-  filename = "${path.module}/../../../.secrets/ytdlp-svc-key.json"
-}
 
