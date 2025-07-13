@@ -13,6 +13,7 @@ DOWNLOAD_DIR = "/tmp/downloads"
 
 # Instantiate GCS client
 CAPTIONS_BUCKET = os.getenv('CAPTIONS_BUCKET')
+CAPTIONS_FOLDER = os.getenv('CAPTIONS_FOLDER')
 
 client = storage.Client()
 bucket = client.get_bucket(CAPTIONS_BUCKET)
@@ -178,7 +179,7 @@ def upload_captions_to_gcs():
         file_name = os.path.basename(caption_path)
 
         # 3. Upload to GCS
-        blob = bucket.blob(file_name)
+        blob = bucket.blob(f"{CAPTIONS_FOLDER}/{file_name}")
         blob.upload_from_filename(caption_path)
 
         # 4. Clean up locally

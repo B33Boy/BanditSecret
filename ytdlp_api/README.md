@@ -38,6 +38,7 @@ docker run \
   -v "$(pwd)/.secrets/ytdlp-svc-key.json:/secrets/key.json:ro" \
   -e GOOGLE_APPLICATION_CREDENTIALS=/secrets/key.json \
   -e CAPTIONS_BUCKET=banditsecret-captions \
+  -e CAPTIONS_FOLDER=raw_vtt \
   -e YTDLP_PORT=5000 \
   ytdlp-api
 ```
