@@ -62,6 +62,21 @@ resource "google_storage_bucket" "caption_bucket" {
   depends_on = [google_project_service.essential_apis]
 }
 
+# Storage buckets don't have folder hierarchy internally, everythin is flat
+# To simulate folder behaviour
+resource "google_storage_bucket_object" "vtt_folder" {
+  name    = "raw_vtt/.keep"
+  content = " "
+  bucket  = google_storage_bucket.caption_bucket.name
+}
+
+resource "google_storage_bucket_object" "json_folder" {
+  name    = "converted_json/.keep"
+  content = " "
+  bucket  = google_storage_bucket.caption_bucket.name
+}
+
+
 module "service_account" {
   source     = "terraform-google-modules/service-accounts/google//modules/simple-sa"
   version    = "~> 4.0"

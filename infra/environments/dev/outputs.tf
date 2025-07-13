@@ -29,6 +29,14 @@ output "cloudsql_user_password" {
 }
 
 # Cloud Storage Outputs
-output "gcs_bucket_name" {
+output "gcs_caption_bucket_name" {
   value = google_storage_bucket.caption_bucket.name
+}
+
+output "gcs_vtt_folder_name" {
+  value = google_storage_bucket_object.vtt_folder.name
+}
+
+output "gcs_converted_json_folder_name" {
+  value = google_storage_bucket_object.json_folder.name
 }
