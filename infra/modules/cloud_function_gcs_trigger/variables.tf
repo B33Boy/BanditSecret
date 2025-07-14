@@ -56,7 +56,7 @@ variable "environment_variables" {
 variable "max_instance_count" {
   description = "The maximum number of instances for the Cloud Function."
   type        = number
-  default     = 100 # Adjust based on expected load
+  default     = 2
 }
 
 variable "min_instance_count" {
