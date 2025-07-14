@@ -30,7 +30,7 @@ output "cloudsql_user_password" {
 
 # Cloud Storage Outputs
 output "gcs_caption_bucket_name" {
-  value = google_storage_bucket.caption_bucket.name
+  value = module.gcs_buckets.buckets_map["captions"].name
 }
 
 output "gcs_vtt_folder_name" {

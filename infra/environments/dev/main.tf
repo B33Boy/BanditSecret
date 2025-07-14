@@ -44,36 +44,42 @@ module "cloudsql_db" {
 }
 
 
-resource "google_storage_bucket" "caption_bucket" {
-  name                        = "${var.project_id}-captions"
-  location                    = var.region
-  project                     = var.project_id
-  force_destroy               = true
-  uniform_bucket_level_access = true
-  lifecycle_rule {
-    action {
-      type = "Delete"
-    }
-    condition {
-      age = 30 # Delete objects older than 30 days
-    }
+module "gcs_buckets" {
+  source     = "terraform-google-modules/cloud-storage/google"
+  version    = "~> 11.0"
+  project_id = var.project_id
+  location   = var.region
+
+  names  = ["captions", "function-sources"]
+  prefix = var.project_id
+
+  force_destroy = {
+    captions         = true
+    function-sources = true
   }
 
-  depends_on = [google_project_service.essential_apis]
+  lifecycle_rules = [
+    {
+      bucket    = "captions"
+      action    = { type = "Delete" }
+      condition = { age = 30 }
+    }
+  ]
 }
+
 
 # Storage buckets don't have folder hierarchy internally, everythin is flat
 # To simulate folder behaviour
 resource "google_storage_bucket_object" "vtt_folder" {
-  name    = "raw_vtt/.keep"
+  name    = "raw_vtt/"
   content = " "
-  bucket  = google_storage_bucket.caption_bucket.name
+  bucket  = module.gcs_buckets.buckets_map["captions"].name
 }
 
 resource "google_storage_bucket_object" "json_folder" {
-  name    = "converted_json/.keep"
+  name    = "converted_json/"
   content = " "
-  bucket  = google_storage_bucket.caption_bucket.name
+  bucket  = module.gcs_buckets.buckets_map["captions"].name
 }
 
 
