@@ -8,7 +8,8 @@ resource "google_project_service" "essential_apis" {
     "vpcaccess.googleapis.com",
     "sqladmin.googleapis.com",
     "run.googleapis.com",
-    "storage.googleapis.com"
+    "storage.googleapis.com",
+    "eventarc.googleapis.com"
   ])
   project            = var.project_id
   service            = each.key
@@ -43,7 +44,7 @@ module "cloudsql_db" {
   network_self_link              = module.network.network_self_link
 }
 
-
+# --- GCS Buckets Module ---
 module "gcs_buckets" {
   source     = "terraform-google-modules/cloud-storage/google"
   version    = "~> 11.0"
@@ -67,7 +68,7 @@ module "gcs_buckets" {
   ]
 }
 
-
+# --- GCS Folder Objects ---
 resource "google_storage_bucket_object" "vtt_folder" {
   name    = "raw_vtt/"
   content = " "
@@ -81,6 +82,7 @@ resource "google_storage_bucket_object" "json_folder" {
 }
 
 
+# --- Service Account Module ---
 module "service_account" {
   source     = "terraform-google-modules/service-accounts/google//modules/simple-sa"
   version    = "~> 4.0"
@@ -94,4 +96,38 @@ module "service_account" {
   ]
 }
 
+
+# --- Cloud Function: VTT To JSON --- 
+module "vtt_to_json_converter" {
+  source                  = "../../modules/cloud_function_gcs_trigger"
+  name                    = "${var.project_id}-vtt-to-json"
+  project_id              = var.project_id
+  region                  = var.region
+  runtime                 = "python312"
+  entry_point             = "vtt_to_json_converter"
+  source_code_bucket_name = module.gcs_buckets.buckets_map["function-sources"].name # Shared source bucket
+  source_code_path        = "../../../cloud_functions/vtt_to_json_converter.zip"    # Local path to zipped source
+  memory                  = "256MiB"
+  timeout_seconds         = 60
+
+  trigger_region    = var.region
+  event_type        = "google.cloud.storage.object.v1.finalized"
+  event_resource_id = module.gcs_buckets.buckets_map["captions"].id
+  event_attribute_filters = {
+    "name" : "raw_vtt/"
+  }
+}
+
+# IAM bindings for vtt_to_json_converter
+resource "google_storage_bucket_iam_member" "vtt_converter_gcs_reader" {
+  bucket = module.gcs_buckets.buckets_map["captions"].name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${module.vtt_to_json_converter.service_account_email}"
+}
+
+resource "google_storage_bucket_iam_member" "vtt_converter_gcs_creator" {
+  bucket = module.gcs_buckets.buckets_map["captions"].name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${module.vtt_to_json_converter.service_account_email}"
+}
 
