@@ -9,7 +9,8 @@ resource "google_project_service" "essential_apis" {
     "sqladmin.googleapis.com",
     "run.googleapis.com",
     "storage.googleapis.com",
-    "eventarc.googleapis.com"
+    "eventarc.googleapis.com",
+    "cloudfunctions.googleapis.com"
   ])
   project            = var.project_id
   service            = each.key
@@ -107,14 +108,14 @@ module "vtt_to_json_converter" {
   entry_point             = "vtt_to_json_converter"
   source_code_bucket_name = module.gcs_buckets.buckets_map["function-sources"].name # Shared source bucket
   source_code_path        = "../../../cloud_functions/vtt_to_json_converter.zip"    # Local path to zipped source
-  memory                  = "256MiB"
+  memory                  = "256M"
   timeout_seconds         = 60
 
   trigger_region    = var.region
   event_type        = "google.cloud.storage.object.v1.finalized"
   event_resource_id = module.gcs_buckets.buckets_map["captions"].id
   event_attribute_filters = {
-    "name" : "raw_vtt/"
+    "bucket" : "${module.gcs_buckets.buckets_map["captions"].name}"
   }
 }
 
@@ -130,4 +131,5 @@ resource "google_storage_bucket_iam_member" "vtt_converter_gcs_creator" {
   role   = "roles/storage.objectCreator"
   member = "serviceAccount:${module.vtt_to_json_converter.service_account_email}"
 }
+
 

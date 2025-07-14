@@ -13,6 +13,21 @@ resource "google_storage_bucket_object" "function_source" {
   source = var.source_code_path
 }
 
+/*
+  Cloud Functions 2nd Gen uses Eventarc, 
+  and Eventarc relies on Cloud Storage events being published via Pub/Sub behind the scenes.
+  So we need to give the internal GCS service account the role/pubsub.publisher 
+*/
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
+resource "google_project_iam_member" "gcs_pubsub_publisher" {
+  project = var.project_id
+  role    = "roles/pubsub.publisher"
+  member  = "serviceAccount:service-${data.google_project.current.number}@gs-project-accounts.iam.gserviceaccount.com"
+}
+
 
 resource "google_cloudfunctions2_function" "main" {
   name     = var.name
