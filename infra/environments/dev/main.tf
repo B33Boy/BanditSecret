@@ -68,8 +68,6 @@ module "gcs_buckets" {
 }
 
 
-# Storage buckets don't have folder hierarchy internally, everythin is flat
-# To simulate folder behaviour
 resource "google_storage_bucket_object" "vtt_folder" {
   name    = "raw_vtt/"
   content = " "
