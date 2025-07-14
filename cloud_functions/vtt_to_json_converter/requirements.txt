@@ -1,0 +1,4 @@
+google-cloud-storage>=2.0.0
+functions-framework==3.*
+webvtt-py>=0.4.6
+cloudevents>=1.9.0

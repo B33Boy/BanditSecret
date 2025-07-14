@@ -110,6 +110,9 @@ module "vtt_to_json_converter" {
   source_code_path        = "../../../cloud_functions/vtt_to_json_converter.zip"    # Local path to zipped source
   memory                  = "256M"
   timeout_seconds         = 60
+  environment_variables = {
+    "JSON_FOLDER" = google_storage_bucket_object.json_folder.name
+  }
 
   trigger_region    = var.region
   event_type        = "google.cloud.storage.object.v1.finalized"
