@@ -8,7 +8,7 @@ resource "google_service_account" "function_sa" {
 }
 
 resource "google_storage_bucket_object" "function_source" {
-  name   = "${var.name}-source-${timestamp()}.zip"
+  name   = "${var.name}-source.zip"
   bucket = var.source_code_bucket_name
   source = var.source_code_path
 }
@@ -57,6 +57,7 @@ resource "google_cloudfunctions2_function" "main" {
   event_trigger {
     trigger_region = var.trigger_region
     event_type     = var.event_type
+    retry_policy   = var.retry_policy
     event_filters {
       attribute = "bucket"
       value     = var.event_resource_id

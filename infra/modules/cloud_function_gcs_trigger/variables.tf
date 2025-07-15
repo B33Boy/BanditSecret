@@ -75,6 +75,12 @@ variable "event_type" {
   type        = string
 }
 
+variable "retry_policy" {
+  description = "The retry policy for the Cloud Function event trigger"
+  type        = string
+  default     = "RETRY_POLICY_DO_NOT_RETRY"
+}
+
 variable "event_resource_id" {
   description = "The full resource ID for the event trigger (e.g., 'projects/PROJECT_ID/buckets/BUCKET_NAME')."
   type        = string
