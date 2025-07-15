@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 from urllib.parse import parse_qs, urlparse
@@ -17,6 +18,12 @@ CAPTIONS_FOLDER = os.getenv('CAPTIONS_FOLDER')
 
 client = storage.Client()
 bucket = client.get_bucket(CAPTIONS_BUCKET)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+)
+logger = logging.getLogger(__name__)
 
 
 # ========================= Custom Types & Errors =========================
@@ -91,7 +98,7 @@ def download_captions(url: str, output_dir: str) -> str:
 
     try:
         res = subprocess.check_output(cmd, text=True).strip().split('\n')
-        print(res)
+        logger.info(res)
 
         caption_path = os.path.join(output_dir, f"{video_id}.en.vtt")
 
